@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flag Lighting Volume — WTC Site</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0e14; color: #c8cdd5; font-family: 'DM Mono', monospace; overflow: hidden; height: 100vh; }
+  #container { width: 100%; height: 100%; position: relative; }
+  canvas { display: block; }
+  .panel {
+    position: absolute;
+    background: rgba(10, 14, 20, 0.92);
+    border: 1px solid rgba(255, 180, 60, 0.18);
+    border-radius: 6px;
+    backdrop-filter: blur(14px);
+  }
+  .info-panel {
+    top: 20px; left: 20px;
+    padding: 18px 22px; font-size: 12px; line-height: 1.7;
+    max-width: 280px;
+  }
+  .info-panel h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px; font-weight: 700; color: #ffb43c;
+    margin-bottom: 4px;
+  }
+  .sub { font-size: 11px; color: #506070; margin-bottom: 12px; }
+  .dim { color: #6a7180; } .val { color: #e0e4ea; } .accent { color: #ffb43c; }
+  .section-label {
+    font-size: 10px; color: #506070; text-transform: uppercase;
+    letter-spacing: 1.2px; margin-top: 10px; margin-bottom: 2px;
+  }
+  .legend {
+    bottom: 20px; left: 20px;
+    padding: 14px 18px; font-size: 11px; line-height: 1.9;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 1px; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .controls {
+    bottom: 20px; right: 20px;
+    padding: 12px 16px; font-size: 11px;
+    text-align: center; color: #506070;
+  }
+  .controls span { color: #c8cdd5; }
+</style>
+</head>
+<body>
+<div id="container">
+  <div class="panel info-panel">
+    <h2>Flag Lighting Volume</h2>
+    <div class="sub">WTC Site, West Side, Lower Manhattan</div>
+
+    <div class="section-label">Infrastructure</div>
+    <span class="dim">Building:</span> <span class="val">30 ft, pole inset 6 ft from edge</span><br>
+    <span class="dim">Pole:</span> <span class="val">50 ft</span><br>
+    <span class="dim">Flag top AGL:</span> <span class="val">80 ft</span><br>
+    <span class="dim">Flag (hoist x fly):</span> <span class="val">12 x 18 ft, 2-ply poly</span><br>
+
+    <div class="section-label">Lit Volume</div>
+    <span class="dim">Upper shape:</span> <span class="accent">Cylinder 360&deg;, 36 ft dia</span><br>
+    <span class="dim">Upper height:</span> <span class="accent">37 ft (13 ft to 50 ft)</span><br>
+    <span class="dim">Lower shape:</span> <span class="accent">Taper, 36 ft to pole</span><br>
+    <span class="dim">Lower height:</span> <span class="accent">13 ft (0 to 13 ft)</span><br>
+    <span class="dim">Total volume:</span> <span class="accent">~42,300 ft&sup3;</span><br>
+
+    <div class="section-label">Flag Positions</div>
+    <span class="dim">Full staff top:</span> <span class="val">50 ft above roof</span><br>
+    <span class="dim">Half staff top:</span> <span class="val">25 ft above roof</span><br>
+    <span class="dim">Half staff repose btm:</span> <span class="val">~13 ft (taper starts)</span><br>
+
+    <div class="section-label">Site Wind</div>
+    <span class="dim">Typical at flag:</span> <span class="val">15-20 mph</span><br>
+    <span class="dim" style="font-size:10px;">Hudson River + 1 WTC downwash exposure</span>
+  </div>
+
+  <div class="panel legend">
+    <div class="legend-item"><div class="legend-swatch" style="background: rgba(255,180,60,0.3); border: 1px solid rgba(255,180,60,0.5);"></div><span>Lit volume (cylinder + taper)</span></div>
+    <div class="legend-item"><div class="legend-swatch" style="background: rgba(230,60,60,0.85);"></div><span>Flag in wind (~20 mph)</span></div>
+    <div class="legend-item"><div class="legend-swatch" style="background: rgba(230,60,60,0.3);"></div><span>Flag in low wind (~5 mph)</span></div>
+    <div class="legend-item"><div class="legend-swatch" style="background: rgba(255,220,120,0.7);"></div><span>Dimensions</span></div>
+  </div>
+
+  <div class="panel controls"><span>Drag</span> orbit &nbsp; <span>Scroll</span> zoom</div>
+</div>
+<script>
+(function() {
+  const container = document.getElementById('container');
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a0e14, 0.004);
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 600);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x0a0e14);
+  container.appendChild(renderer.domElement);
+
+  const PH = 50, CR = 18, FH = 12, FF = 18, HST = 25, TAPER_H = 13;
+
+  // --- GROUND + GRID ---
+  const gnd = new THREE.Mesh(
+    new THREE.PlaneGeometry(160, 160),
+    new THREE.MeshStandardMaterial({color: 0x1a1e28, roughness: 0.9})
+  );
+  gnd.rotation.x = -Math.PI/2; scene.add(gnd);
+  scene.add(new THREE.GridHelper(160, 32, 0x2a2e38, 0x1e2230));
+
+  // --- POLE ---
+  const poleMat = new THREE.MeshStandardMaterial({color: 0xc8cdd5, roughness: 0.3, metalness: 0.8});
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, PH, 12), poleMat);
+  pole.position.y = PH/2; scene.add(pole);
+  const fin = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), poleMat);
+  fin.position.y = PH + 0.3; scene.add(fin);
+
+  // --- LIT VOLUME: UPPER CYLINDER (13 ft to 50 ft) ---
+  const cylH = PH - TAPER_H; // 37 ft
+  const cylShell = new THREE.Mesh(
+    new THREE.CylinderGeometry(CR, CR, cylH, 48, 1, true),
+    new THREE.MeshBasicMaterial({color: 0xffb43c, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false})
+  );
+  cylShell.position.y = TAPER_H + cylH/2; scene.add(cylShell);
+
+  // Top cap
+  const topCap = new THREE.Mesh(
+    new THREE.CircleGeometry(CR, 64),
+    new THREE.MeshBasicMaterial({color: 0xffb43c, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false})
+  );
+  topCap.rotation.x = -Math.PI/2; topCap.position.y = PH; scene.add(topCap);
+
+  // --- LIT VOLUME: LOWER TAPER (0 to 13 ft) ---
+  const taper = new THREE.Mesh(
+    new THREE.CylinderGeometry(CR, 1.0, TAPER_H, 48, 1, true),
+    new THREE.MeshBasicMaterial({color: 0xffb43c, transparent: true, opacity: 0.05, side: THREE.DoubleSide, depthWrite: false})
+  );
+  taper.position.y = TAPER_H/2; scene.add(taper);
+
+  // Bottom cap (small)
+  const btmCap = new THREE.Mesh(
+    new THREE.CircleGeometry(1.0, 32),
+    new THREE.MeshBasicMaterial({color: 0xffb43c, transparent: true, opacity: 0.03, side: THREE.DoubleSide, depthWrite: false})
+  );
+  btmCap.rotation.x = -Math.PI/2; btmCap.position.y = 0.05; scene.add(btmCap);
+
+  // Junction ring at taper/cylinder boundary
+  const jRing = new THREE.Mesh(
+    new THREE.RingGeometry(CR - 0.08, CR + 0.08, 64),
+    new THREE.MeshBasicMaterial({color: 0xffb43c, transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false})
+  );
+  jRing.rotation.x = -Math.PI/2; jRing.position.y = TAPER_H; scene.add(jRing);
+
+  // Horizontal rings on cylinder every 10 ft (at 20, 30, 40, 50)
+  [20, 30, 40, 50].forEach(y => {
+    const r = new THREE.Mesh(
+      new THREE.RingGeometry(CR - 0.05, CR + 0.05, 64),
+      new THREE.MeshBasicMaterial({color: 0xffb43c, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false})
+    );
+    r.rotation.x = -Math.PI/2; r.position.y = y; scene.add(r);
+  });
+
+  // Vertical edge lines on cylinder
+  for (let i = 0; i < 16; i++) {
+    const a = (i/16) * Math.PI * 2;
+    const cx = Math.cos(a), cz = Math.sin(a);
+    // Cylinder portion
+    scene.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(cx*CR, TAPER_H, cz*CR),
+        new THREE.Vector3(cx*CR, PH, cz*CR)
+      ]),
+      new THREE.LineBasicMaterial({color: 0xffb43c, transparent: true, opacity: 0.08})
+    ));
+    // Taper portion
+    scene.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(cx*1.0, 0, cz*1.0),
+        new THREE.Vector3(cx*CR, TAPER_H, cz*CR)
+      ]),
+      new THREE.LineBasicMaterial({color: 0xffb43c, transparent: true, opacity: 0.06})
+    ));
+  }
+
+  // --- FLAGS ---
+  const FLAG_COL = 0xe04040; // warm red
+  const flagAnimData = [];
+
+  // WIND FLAG (extended, ~20 mph)
+  function createWindFlag(topY, opacity) {
+    const grp = new THREE.Group();
+    const segX = 32, segY = 10;
+    const ext = FF * 0.85; // ~15.3 ft typical extension
+    const geo = new THREE.PlaneGeometry(ext, FH, segX, segY);
+    const pos = geo.attributes.position;
+    const basePos = new Float32Array(pos.count * 3);
+
+    for (let i = 0; i < pos.count; i++) {
+      const lx = pos.getX(i), ly = pos.getY(i);
+      const nx = (lx + ext/2) / ext;
+      const ny = (ly + FH/2) / FH;
+
+      const topDroop = nx*nx * 0.4;
+      const bottomDroop = nx*nx * 2.5;
+      const droop = topDroop*ny + bottomDroop*(1-ny);
+      const lift = (1-nx) * 0.4 * (ny-0.5);
+      const finalY = ly - droop + lift;
+
+      basePos[i*3] = lx;
+      basePos[i*3+1] = finalY;
+      basePos[i*3+2] = 0;
+      pos.setY(i, finalY);
+      pos.setZ(i, Math.sin(nx*Math.PI*2.8) * nx*nx*nx * 2.0);
+    }
+    geo.computeVertexNormals();
+    flagAnimData.push({ geo, basePos, ext, type: 'wind' });
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: FLAG_COL, transparent: true, opacity: opacity,
+      side: THREE.DoubleSide, roughness: 0.8, emissive: FLAG_COL, emissiveIntensity: 0.15
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(ext/2 + 0.5, topY - FH/2, 0);
+    grp.add(mesh);
+
+    // Hoist edge
+    grp.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0.5, topY+0.3, 0),
+        new THREE.Vector3(0.5, topY-FH-0.2, 0)
+      ]),
+      new THREE.LineBasicMaterial({color: FLAG_COL, transparent: true, opacity: opacity+0.15})
+    ));
+    return grp;
+  }
+
+  // LOW WIND FLAG (draped near pole, ~5 mph)
+  function createLimpFlag(topY, opacity) {
+    const grp = new THREE.Group();
+    const segX = 12, segY = 16;
+    const hangWidth = 3.5;
+    const hangHeight = FH + 4;
+
+    const geo = new THREE.PlaneGeometry(hangWidth, hangHeight, segX, segY);
+    const pos = geo.attributes.position;
+    const basePos = new Float32Array(pos.count * 3);
+
+    for (let i = 0; i < pos.count; i++) {
+      const lx = pos.getX(i);
+      const ly = pos.getY(i);
+
+      const ny = 1 - (ly + hangHeight/2) / hangHeight;
+      const nx = (lx + hangWidth/2) / hangWidth;
+
+      const billow = Math.sin(nx * Math.PI) * Math.sin(ny * Math.PI * 0.7) * 1.2;
+      const gather = ny > 0.7 ? (ny-0.7)*3 * (0.5-Math.abs(nx-0.5)) : 0;
+
+      basePos[i*3] = lx;
+      basePos[i*3+1] = ly;
+      basePos[i*3+2] = billow - gather;
+
+      pos.setX(i, lx);
+      pos.setY(i, ly);
+      pos.setZ(i, billow - gather);
+    }
+    geo.computeVertexNormals();
+    flagAnimData.push({ geo, basePos, ext: hangWidth, type: 'limp' });
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: FLAG_COL, transparent: true, opacity: opacity,
+      side: THREE.DoubleSide, roughness: 0.9, emissive: FLAG_COL, emissiveIntensity: 0.08
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(hangWidth/2 + 0.4, topY - hangHeight/2, 0);
+    grp.add(mesh);
+
+    return grp;
+  }
+
+  // Full staff, wind
+  scene.add(createWindFlag(PH, 0.8));
+  // Half staff, wind
+  scene.add(createWindFlag(HST, 0.5));
+  // Full staff, low wind (drape)
+  scene.add(createLimpFlag(PH, 0.3));
+
+  // Half-staff dashed lines
+  function dashed(y, op) {
+    const g = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-CR-3, y, 0), new THREE.Vector3(CR+3, y, 0)
+    ]);
+    const l = new THREE.Line(g, new THREE.LineDashedMaterial({
+      color: FLAG_COL, transparent: true, opacity: op, dashSize: 1, gapSize: 0.5
+    }));
+    l.computeLineDistances(); return l;
+  }
+  scene.add(dashed(HST, 0.2));
+  scene.add(dashed(TAPER_H, 0.12));
+
+  // --- DIMENSION LABELS ---
+  function makeLabel(text, fs, color) {
+    const c = document.createElement('canvas');
+    const ctx = c.getContext('2d');
+    ctx.font = `bold ${fs}px DM Mono, monospace`;
+    const m = ctx.measureText(text);
+    const w = m.width+24, h = fs+14;
+    c.width = w*2; c.height = h*2; ctx.scale(2,2);
+    ctx.fillStyle = 'rgba(10,14,20,0.88)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(0,0,w,h,4); else ctx.rect(0,0,w,h);
+    ctx.fill();
+    ctx.font = `bold ${fs}px DM Mono, monospace`;
+    ctx.fillStyle = color; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(text, w/2, h/2);
+    return c;
+  }
+  function addLabel(text, pos, scale, color) {
+    const c = makeLabel(text, 13, color || '#ffdc78');
+    const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: tex, transparent: true, depthWrite: false, depthTest: false
+    }));
+    s.position.copy(pos);
+    const sc = scale || 7;
+    s.scale.set(sc*(c.width/c.height), sc, 1);
+    scene.add(s);
+  }
+  function dimLine(a, b, col, op) {
+    const mat = new THREE.LineBasicMaterial({color: col, transparent: true, opacity: op});
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a,b]), mat));
+    const isV = Math.abs(b.y-a.y) > Math.abs(b.x-a.x);
+    const tk = 0.8;
+    [a,b].forEach(p => {
+      let t1, t2;
+      if (isV) { t1=new THREE.Vector3(p.x+tk,p.y,p.z); t2=new THREE.Vector3(p.x-tk,p.y,p.z); }
+      else { t1=new THREE.Vector3(p.x,p.y+tk,p.z); t2=new THREE.Vector3(p.x,p.y-tk,p.z); }
+      scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([t1,t2]), mat));
+    });
+  }
+
+  // Pole height (left)
+  dimLine(new THREE.Vector3(-CR-6,0,0), new THREE.Vector3(-CR-6,PH,0), 0xffdc78, 0.4);
+  addLabel('50 ft pole', new THREE.Vector3(-CR-10, PH/2, 0), 6.5);
+
+  // Full volume height (right)
+  dimLine(new THREE.Vector3(CR+6,0,0), new THREE.Vector3(CR+6,PH,0), 0xffb43c, 0.3);
+  addLabel('50 ft total', new THREE.Vector3(CR+11, PH/2, 0), 6, '#ffb43c');
+
+  // Cylinder portion height
+  dimLine(new THREE.Vector3(CR+3, TAPER_H, 0), new THREE.Vector3(CR+3, PH, 0), 0xffb43c, 0.25);
+  addLabel('37 ft cyl.', new THREE.Vector3(CR+7, TAPER_H + (PH-TAPER_H)/2, 0), 5, '#ffb43c');
+
+  // Taper height
+  dimLine(new THREE.Vector3(CR+3, 0, 0), new THREE.Vector3(CR+3, TAPER_H, 0), 0xffb43c, 0.2);
+  addLabel('13 ft taper', new THREE.Vector3(CR+7, TAPER_H/2, 0), 5, '#cc9944');
+
+  // Diameter (ground front)
+  dimLine(new THREE.Vector3(-CR, TAPER_H+0.3, CR+6), new THREE.Vector3(CR, TAPER_H+0.3, CR+6), 0xffb43c, 0.4);
+  addLabel('36 ft diameter', new THREE.Vector3(0, TAPER_H+2, CR+6), 6.5, '#ffb43c');
+
+  // Radius
+  dimLine(new THREE.Vector3(0, TAPER_H+0.3, 0), new THREE.Vector3(CR, TAPER_H+0.3, 0), 0xffb43c, 0.25);
+  addLabel('18 ft radius', new THREE.Vector3(CR/2, TAPER_H+2, 0), 5.5, '#ffb43c');
+
+  // Flag hoist
+  dimLine(new THREE.Vector3(-4, PH+0.3, 5), new THREE.Vector3(-4, PH-FH-0.2, 5), 0xe04040, 0.4);
+  addLabel('12 ft hoist', new THREE.Vector3(-8, PH-FH/2, 5), 5.5, '#e06060');
+
+  // Flag fly
+  dimLine(new THREE.Vector3(0.5, PH+3, 0), new THREE.Vector3(0.5+FF, PH+3, 0), 0xe04040, 0.35);
+  addLabel('18 ft fly', new THREE.Vector3(0.5+FF/2, PH+4.5, 0), 5.5, '#e06060');
+
+  // Half staff
+  addLabel('half staff 25 ft', new THREE.Vector3(-CR-6, HST, 0), 5.5, '#885050');
+
+  // Taper start
+  addLabel('taper at 13 ft', new THREE.Vector3(-CR-6, TAPER_H, 0), 5, '#886644');
+
+  // --- LIGHTS ---
+  scene.add(new THREE.AmbientLight(0x4466aa, 0.45));
+  const dl = new THREE.DirectionalLight(0xffeedd, 0.6);
+  dl.position.set(30, 50, 20); scene.add(dl);
+  const pl = new THREE.PointLight(0xffb43c, 0.15, 120);
+  pl.position.set(0, 25, 0); scene.add(pl);
+  const fl = new THREE.PointLight(0xff8888, 0.2, 80);
+  fl.position.set(10, 40, 10); scene.add(fl);
+
+  // --- ORBIT ---
+  let drag=false, prev={x:0,y:0};
+  let sph = {theta: Math.PI/4.2, phi: Math.PI/3.1, radius: 105};
+  let lastInt=0, autoRot=true;
+
+  function updCam() {
+    camera.position.set(
+      sph.radius*Math.sin(sph.phi)*Math.cos(sph.theta),
+      sph.radius*Math.cos(sph.phi),
+      sph.radius*Math.sin(sph.phi)*Math.sin(sph.theta)
+    );
+    camera.lookAt(0, 23, 0);
+  }
+  function pd(x,y) { drag=true; autoRot=false; lastInt=Date.now(); prev={x,y}; }
+  function pm(x,y) {
+    if(!drag) return;
+    sph.theta -= (x-prev.x)*0.005;
+    sph.phi = Math.max(0.15, Math.min(Math.PI/2.1, sph.phi+(y-prev.y)*0.005));
+    prev={x,y}; updCam();
+  }
+  function pu() { drag=false; lastInt=Date.now(); }
+  const cv = renderer.domElement;
+  cv.addEventListener('mousedown', e=>pd(e.clientX,e.clientY));
+  cv.addEventListener('mousemove', e=>pm(e.clientX,e.clientY));
+  cv.addEventListener('mouseup', pu); cv.addEventListener('mouseleave', pu);
+  cv.addEventListener('wheel', e=>{
+    sph.radius=Math.max(35,Math.min(180,sph.radius+e.deltaY*0.06));
+    autoRot=false; lastInt=Date.now(); updCam();
+  });
+  cv.addEventListener('touchstart', e=>{if(e.touches.length===1)pd(e.touches[0].clientX,e.touches[0].clientY);});
+  cv.addEventListener('touchmove', e=>{if(e.touches.length===1){e.preventDefault();pm(e.touches[0].clientX,e.touches[0].clientY);}},{passive:false});
+  cv.addEventListener('touchend', pu);
+  updCam();
+
+  // --- ANIMATION ---
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.025;
+    if (!drag && Date.now()-lastInt > 3000) autoRot = true;
+    if (autoRot) { sph.theta += 0.0015; updCam(); }
+
+    flagAnimData.forEach(fd => {
+      const pos = fd.geo.attributes.position;
+      const bp = fd.basePos;
+      const ext = fd.ext;
+
+      if (fd.type === 'wind') {
+        for (let i = 0; i < pos.count; i++) {
+          const lx = bp[i*3], ly = bp[i*3+1];
+          const nx = (lx + ext/2) / ext;
+          const amp = nx*nx*nx * 2.5;
+          const wave1 = Math.sin(nx*Math.PI*2.8 - time*4.0) * amp;
+          const wave2 = Math.sin(nx*Math.PI*5.5 - time*7.0) * amp * 0.2;
+          const snap = nx > 0.7 ? Math.sin(time*11 + nx*22) * (nx-0.7)*1.8 : 0;
+          const yOsc = Math.sin(nx*Math.PI*2 - time*3.5) * nx*nx * 0.35;
+          pos.setY(i, ly + yOsc);
+          pos.setZ(i, wave1 + wave2 + snap);
+        }
+      } else if (fd.type === 'limp') {
+        for (let i = 0; i < pos.count; i++) {
+          const lx = bp[i*3], ly = bp[i*3+1], bz = bp[i*3+2];
+          const nx = (lx + ext/2) / ext;
+          const ny = 1 - (ly + fd.geo.parameters.height/2) / fd.geo.parameters.height;
+          const sway = Math.sin(time*1.2 + ny*2) * 0.4 * Math.sin(nx*Math.PI);
+          const breathe = Math.sin(time*0.8) * 0.15 * Math.sin(nx*Math.PI) * Math.sin(ny*Math.PI*0.7);
+          pos.setZ(i, bz + sway + breathe);
+        }
+      }
+      pos.needsUpdate = true;
+      fd.geo.computeVertexNormals();
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+</script>
+</body>
+</html>

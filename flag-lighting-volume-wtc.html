@@ -8,22 +8,21 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0e14; color: #c8cdd5; font-family: 'DM Mono', monospace; overflow: hidden; height: 100vh; }
-
-  #layout { display: flex; width: 100vw; height: 100vh; }
-  #main-view { flex: 0 0 68%; height: 100%; position: relative; }
-  #side-column { flex: 0 0 32%; height: 100%; display: flex; flex-direction: column; border-left: 1px solid rgba(255,180,60,0.18); }
-  #elev-view { flex: 1; position: relative; border-bottom: 1px solid rgba(255,180,60,0.18); overflow: hidden; }
-  #plan-view { flex: 1; position: relative; overflow: hidden; }
-
-  .view-label {
-    position: absolute; top: 6px; left: 10px; z-index: 5;
-    font-size: 9px; color: #506070; text-transform: uppercase; letter-spacing: 1.4px;
-    pointer-events: none;
+  body {
+    background: #0a0e14; color: #c8cdd5;
+    font-family: 'DM Mono', monospace;
+    overflow: hidden; height: 100vh;
   }
+  #app { display: flex; width: 100%; height: 100%; }
+  #main-view { flex: 0 0 65%; position: relative; border-right: 1px solid rgba(255,180,60,0.1); }
+  #ortho-column { flex: 0 0 35%; display: flex; flex-direction: column; }
+  #elev-view { flex: 1; position: relative; border-bottom: 1px solid rgba(255,180,60,0.1); }
+  #plan-view { flex: 1; position: relative; }
+
+  canvas { display: block; }
 
   .panel {
-    position: absolute; z-index: 10;
+    position: absolute;
     background: rgba(10, 14, 20, 0.92);
     border: 1px solid rgba(255, 180, 60, 0.18);
     border-radius: 6px;
@@ -31,8 +30,8 @@
   }
 
   .info-panel {
-    top: 20px; left: 20px;
-    padding: 14px 18px; font-size: 12px; line-height: 1.7;
+    top: 16px; left: 16px;
+    padding: 14px 18px; font-size: 12px;
     max-width: 260px;
   }
   .info-panel h2 {
@@ -40,694 +39,1113 @@
     font-size: 14px; font-weight: 700; color: #ffb43c;
     margin-bottom: 2px;
   }
-  .sub { font-size: 10px; color: #506070; margin-bottom: 8px; }
-  .dim { color: #6a7180; } .val { color: #e0e4ea; } .accent { color: #ffb43c; }
-  .summary-line { margin-bottom: 2px; }
-  .details-toggle {
-    display: inline-block; margin-top: 6px; font-size: 10px; color: #506070;
-    cursor: pointer; user-select: none; border: none; background: none;
-    font-family: inherit; padding: 0;
+  .info-panel .sub {
+    font-size: 10px; color: #506070; margin-bottom: 10px;
   }
-  .details-toggle:hover { color: #ffb43c; }
-  .details-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
-  .details-body.open { max-height: 300px; }
+  .info-panel .key-stat {
+    line-height: 1.7;
+  }
+  .dim { color: #6a7180; } .val { color: #e0e4ea; } .accent { color: #ffb43c; }
+  .cool { color: #8899aa; }
+
+  .toggle-btn {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 10px;
+    color: #6a7180;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .toggle-btn:hover { color: #ffb43c; }
+
+  .details {
+    display: none;
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,180,60,0.1);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .details.open { display: block; }
   .section-label {
     font-size: 9px; color: #506070; text-transform: uppercase;
-    letter-spacing: 1.2px; margin-top: 8px; margin-bottom: 2px;
+    letter-spacing: 1.2px; margin-top: 8px; margin-bottom: 1px;
   }
+  .section-label:first-child { margin-top: 0; }
 
-  .flag-controls {
-    top: 14px; right: 14px;
-    padding: 6px 4px; display: flex; gap: 2px;
+  .flag-toggle {
+    top: 16px; right: 16px;
+    padding: 4px; font-size: 9px;
+    display: flex; gap: 2px;
   }
   .flag-btn {
-    font-family: 'DM Mono', monospace; font-size: 10px;
-    background: rgba(10,14,20,0.9); color: #6a7180;
-    border: 1px solid rgba(255,180,60,0.12); border-radius: 4px;
-    padding: 4px 8px; cursor: pointer; white-space: nowrap;
+    padding: 6px 8px;
+    cursor: pointer;
+    color: #6a7180;
+    border-radius: 3px;
+    transition: all 0.15s;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    user-select: none;
+    white-space: nowrap;
   }
-  .flag-btn:hover { color: #c8cdd5; border-color: rgba(255,180,60,0.3); }
-  .flag-btn.active { color: #ffb43c; border-color: rgba(255,180,60,0.5); }
+  .flag-btn:hover { color: #e0e4ea; background: rgba(255,180,60,0.08); }
+  .flag-btn.active { color: #ffb43c; background: rgba(255,180,60,0.15); }
+
+  .view-label {
+    top: 12px; left: 12px;
+    padding: 4px 10px;
+    font-size: 10px;
+    color: #506070;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .controls-hint {
+    bottom: 12px; right: 12px;
+    padding: 6px 10px;
+    font-size: 10px; color: #506070;
+  }
+  .controls-hint span { color: #c8cdd5; }
 
   .legend {
-    position: absolute; bottom: 8px; left: 8px; right: 8px; z-index: 10;
-    background: rgba(10,14,20,0.92); border: 1px solid rgba(255,180,60,0.18);
-    border-radius: 6px; padding: 8px 12px; font-size: 10px; line-height: 1.8;
+    bottom: 16px; left: 16px;
+    padding: 10px 14px; font-size: 10px; line-height: 1.8;
   }
-  .legend-item { display: flex; align-items: center; gap: 6px; }
-  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-  .orbit-hint {
-    position: absolute; bottom: 10px; left: 20px; z-index: 10;
-    font-size: 10px; color: #3a4050; pointer-events: none;
-  }
-  .orbit-hint span { color: #506070; }
-
-  /* 2D overlay canvases for ortho annotations */
-  .overlay-canvas {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 4;
-  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-swatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
 </style>
 </head>
 <body>
-<div id="layout">
+<div id="app">
   <div id="main-view">
-    <div class="view-label">Perspective</div>
     <div class="panel info-panel">
       <h2>Flag Lighting Volume</h2>
       <div class="sub">WTC Site, West Side, Lower Manhattan</div>
-      <div class="summary-line"><span class="dim">Diameter:</span> <span class="accent">36 ft</span></div>
-      <div class="summary-line"><span class="dim">Height:</span> <span class="accent">50 ft (37 ft cyl + 13 ft taper)</span></div>
-      <div class="summary-line"><span class="dim">Volume:</span> <span class="accent">~42,300 ft&sup3;</span></div>
-      <button class="details-toggle" id="detailsToggle">&#9660; Details</button>
-      <div class="details-body" id="detailsBody">
+      <div class="key-stat">
+        <span class="dim">Diameter:</span> <span class="accent">36 ft</span><br>
+        <span class="dim">Height:</span> <span class="accent">50 ft</span><br>
+        <span class="dim">Volume:</span> <span class="accent">~43,000 ft&sup3;</span>
+      </div>
+      <div class="toggle-btn" id="details-toggle">&#9662; details</div>
+      <div class="details" id="details-content">
         <div class="section-label">Infrastructure</div>
         <span class="dim">Building:</span> <span class="val">30 ft, pole inset 6 ft from edge</span><br>
         <span class="dim">Pole:</span> <span class="val">50 ft</span><br>
         <span class="dim">Flag top AGL:</span> <span class="val">80 ft</span><br>
-        <span class="dim">Flag (hoist × fly):</span> <span class="val">12 × 18 ft, 2-ply poly</span><br>
+        <span class="dim">Flag:</span> <span class="val">12 x 18 ft, 2-ply poly</span>
+
+        <div class="section-label">Lit Volume</div>
+        <span class="dim">Upper cylinder:</span> <span class="val">36 ft dia, 37 ft tall</span><br>
+        <span class="dim">Lower dome:</span> <span class="val">21.6 ft radius arc</span>
+
         <div class="section-label">Flag Positions</div>
-        <span class="dim">Full staff top:</span> <span class="val">50 ft above roof</span><br>
-        <span class="dim">Half staff top:</span> <span class="val">25 ft above roof</span><br>
-        <span class="dim">Half staff repose btm:</span> <span class="val">~13 ft (taper starts)</span><br>
+        <span class="dim">Full staff top:</span> <span class="val">50 ft</span><br>
+        <span class="dim">Half staff top:</span> <span class="val">25 ft</span><br>
+        <span class="dim">Repose bottom:</span> <span class="val">~13 ft</span>
+
         <div class="section-label">Site Wind</div>
-        <span class="dim">Typical at flag:</span> <span class="val">15–20 mph</span><br>
-        <span class="dim" style="font-size:9px;">Hudson River + 1 WTC downwash exposure</span>
+        <span class="dim">Typical at flag:</span> <span class="val">15-20 mph</span><br>
+        <span style="font-size:9px; color:#506070;">Hudson River + 1 WTC downwash</span>
       </div>
     </div>
-    <div class="panel flag-controls">
-      <button class="flag-btn" data-mode="nowind">No wind</button>
-      <button class="flag-btn active" data-mode="wind">Typical wind</button>
-      <button class="flag-btn" data-mode="hide">Hide flag</button>
+
+    <div class="panel flag-toggle">
+      <div class="flag-btn" data-state="none">No wind</div>
+      <div class="flag-btn" data-state="moderateA">Mod A</div>
+      <div class="flag-btn" data-state="moderateB">Mod B</div>
+      <div class="flag-btn" data-state="moderateC">Mod C</div>
+      <div class="flag-btn active" data-state="wind">Typical</div>
+      <div class="flag-btn" data-state="hide">Hide</div>
     </div>
-    <div class="orbit-hint"><span>Drag</span> orbit &nbsp; <span>Scroll</span> zoom</div>
+
+    <div class="panel legend">
+      <div class="legend-item"><div class="legend-swatch" style="background: rgba(255,180,60,0.3); border: 1px solid rgba(255,180,60,0.5);"></div><span>Cylinder (windy extension zone)</span></div>
+      <div class="legend-item"><div class="legend-swatch" style="background: rgba(136,153,170,0.3); border: 1px solid rgba(136,153,170,0.5);"></div><span>Dome (low-wind drape zone)</span></div>
+      <div class="legend-item"><div class="legend-swatch" style="background: rgba(230,60,60,0.85);"></div><span>Flag (toggle states above)</span></div>
+    </div>
+
+    <div class="panel controls-hint"><span>Drag</span> orbit &nbsp; <span>Scroll</span> zoom</div>
   </div>
 
-  <div id="side-column">
+  <div id="ortho-column">
     <div id="elev-view">
-      <div class="view-label">Elevation</div>
-      <canvas class="overlay-canvas" id="elevOverlay"></canvas>
+      <div class="panel view-label">Elevation</div>
+      <div class="panel controls-hint"><span>Scroll</span> zoom</div>
     </div>
     <div id="plan-view">
-      <div class="view-label">Plan</div>
-      <canvas class="overlay-canvas" id="planOverlay"></canvas>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,180,60,0.3); border:1px solid rgba(255,180,60,0.5);"></div><span>Cylinder volume</span></div>
-        <div class="legend-item"><div class="legend-swatch" style="background:rgba(136,153,170,0.3); border:1px solid rgba(136,153,170,0.4);"></div><span>Taper volume</span></div>
-        <div class="legend-item"><div class="legend-swatch" style="background:rgba(230,60,60,0.7);"></div><span>Flag</span></div>
-        <div class="legend-item"><div class="legend-swatch" style="background:rgba(102,119,136,0.6);"></div><span>Human (6 ft)</span></div>
-      </div>
+      <div class="panel view-label">Plan</div>
+      <div class="panel controls-hint"><span>Scroll</span> zoom</div>
     </div>
   </div>
 </div>
 
 <script>
 (function() {
+  // ========================================
+  // SHARED SCENE SETUP
+  // ========================================
   const PH = 50, CR = 18, FH = 12, FF = 18, HST = 25, TAPER_H = 13;
-  const BG = 0x0a0e14;
-  const AMBER = 0xffb43c, COOL = 0x8899aa, FLAG_COL = 0xe04040;
+  const FLAG_COL = 0xe04040;
+  const AMBER = 0xffb43c;
+  const COOL = 0x8899aa;
 
-  // --- RENDERER ---
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(BG);
-  renderer.setScissorTest(true);
-  renderer.autoClear = false;
-  renderer.domElement.style.position = 'fixed';
-  renderer.domElement.style.top = '0';
-  renderer.domElement.style.left = '0';
-  renderer.domElement.style.zIndex = '1';
-  renderer.domElement.style.pointerEvents = 'none';
-  document.body.appendChild(renderer.domElement);
-
-  // --- SCENE ---
+  // Build scene ONCE, reused by all three renderers
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(BG, 0.003);
+  scene.fog = new THREE.FogExp2(0x0a0e14, 0.004);
 
-  // --- CAMERAS ---
-  const camPersp = new THREE.PerspectiveCamera(45, 1, 0.1, 600);
-  camPersp.layers.enable(0);
-  camPersp.layers.enable(1); // 3D labels
-
-  const camElev = new THREE.OrthographicCamera(-40, 40, 55, -5, 0.1, 300);
-  camElev.position.set(0, 25, 150);
-  camElev.lookAt(0, 25, 0);
-  camElev.layers.set(0); // geometry only, no 3D labels
-
-  const camPlan = new THREE.OrthographicCamera(-30, 30, 30, -30, 0.1, 300);
-  camPlan.position.set(0, 150, 0);
-  camPlan.lookAt(0, 0, 0);
-  camPlan.layers.set(0); // geometry only, no 3D labels
-
-  // --- LIGHTS ---
-  scene.add(new THREE.AmbientLight(0x4466aa, 0.5));
-  const dl = new THREE.DirectionalLight(0xffeedd, 0.7);
-  dl.position.set(30, 50, 20); scene.add(dl);
-  const pl = new THREE.PointLight(AMBER, 0.2, 120);
-  pl.position.set(0, 25, 0); scene.add(pl);
-  const fl = new THREE.PointLight(0xff8888, 0.2, 80);
-  fl.position.set(10, 40, 10); scene.add(fl);
-
-  // --- GROUND + GRID ---
+  // Ground + grid
   const gnd = new THREE.Mesh(
-    new THREE.PlaneGeometry(160, 160),
-    new THREE.MeshStandardMaterial({ color: 0x1a1e28, roughness: 0.9 })
+    new THREE.PlaneGeometry(200, 200),
+    new THREE.MeshStandardMaterial({color: 0x1a1e28, roughness: 0.9})
   );
-  gnd.rotation.x = -Math.PI / 2; scene.add(gnd);
-  scene.add(new THREE.GridHelper(160, 32, 0x2a2e38, 0x1e2230));
+  gnd.rotation.x = -Math.PI/2; scene.add(gnd);
+  scene.add(new THREE.GridHelper(200, 40, 0x2a2e38, 0x1e2230));
 
-  // --- ROOF DECK (40x40 ft wireframe at y=0) ---
-  const deckGeo = new THREE.PlaneGeometry(40, 40);
-  deckGeo.rotateX(-Math.PI / 2);
-  const deckEdges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(deckGeo),
-    new THREE.LineBasicMaterial({ color: 0x445566, transparent: true, opacity: 0.4 })
-  );
-  deckEdges.position.y = 0.1; scene.add(deckEdges);
+  // --- ROOF DECK OUTLINE (40x40 ft) ---
+  const roofOutlinePts = [
+    new THREE.Vector3(-20, 0.05, -20),
+    new THREE.Vector3(20, 0.05, -20),
+    new THREE.Vector3(20, 0.05, 20),
+    new THREE.Vector3(-20, 0.05, 20),
+    new THREE.Vector3(-20, 0.05, -20),
+  ];
+  scene.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(roofOutlinePts),
+    new THREE.LineBasicMaterial({color: 0x506070, transparent: true, opacity: 0.4})
+  ));
+
+  // Parapet edge indicator (pole inset 6 ft from edge, show the edge line)
+  const parapetPts = [
+    new THREE.Vector3(-20, 0.1, 6),
+    new THREE.Vector3(20, 0.1, 6),
+  ];
+  scene.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(parapetPts),
+    new THREE.LineDashedMaterial({color: 0x506070, transparent: true, opacity: 0.5, dashSize: 0.8, gapSize: 0.4})
+  ).computeLineDistances ? (() => {
+    const l = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(parapetPts),
+      new THREE.LineDashedMaterial({color: 0x506070, transparent: true, opacity: 0.5, dashSize: 0.8, gapSize: 0.4})
+    );
+    l.computeLineDistances();
+    return l;
+  })() : null);
 
   // --- POLE ---
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0xc8cdd5, roughness: 0.3, metalness: 0.8 });
+  const poleMat = new THREE.MeshStandardMaterial({color: 0xc8cdd5, roughness: 0.3, metalness: 0.8});
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, PH, 12), poleMat);
-  pole.position.y = PH / 2; scene.add(pole);
+  pole.position.y = PH/2; scene.add(pole);
   const fin = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), poleMat);
   fin.position.y = PH + 0.3; scene.add(fin);
 
-  // --- HUMAN FIGURE (6 ft) ---
-  const hMat = new THREE.MeshStandardMaterial({ color: 0x667788, roughness: 0.8 });
-  const hGrp = new THREE.Group();
-  const hBody = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 4.2, 8), hMat);
-  hBody.position.y = 2.1; hGrp.add(hBody);
-  const hHead = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 10), hMat);
-  hHead.position.y = 5.0; hGrp.add(hHead);
-  const hShoulders = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.4, 6), hMat);
-  hShoulders.rotation.z = Math.PI / 2; hShoulders.position.y = 4.0; hGrp.add(hShoulders);
-  hGrp.position.set(3, 0, 3); scene.add(hGrp);
+  // --- HUMAN FIGURE (6 ft tall scale reference) ---
+  const humanGroup = new THREE.Group();
+  const humanMat = new THREE.MeshStandardMaterial({color: 0x506070, roughness: 0.9});
+  // Simple silhouette: head + torso + legs
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12), humanMat);
+  head.position.y = 5.5; humanGroup.add(head);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 2.2, 8), humanMat);
+  torso.position.y = 4.0; humanGroup.add(torso);
+  const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 2.8, 8), humanMat);
+  legs.position.y = 1.4; humanGroup.add(legs);
+  humanGroup.position.set(2.5, 0, 2.5); // near pole base
+  scene.add(humanGroup);
 
-  // --- LIT VOLUME: CYLINDER (13–50 ft) amber ---
+  // --- LIT VOLUME: UPPER CYLINDER (amber) ---
   const cylH = PH - TAPER_H;
   const cylShell = new THREE.Mesh(
     new THREE.CylinderGeometry(CR, CR, cylH, 48, 1, true),
-    new THREE.MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false })
+    new THREE.MeshBasicMaterial({color: AMBER, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false})
   );
-  cylShell.position.y = TAPER_H + cylH / 2; scene.add(cylShell);
+  cylShell.position.y = TAPER_H + cylH/2; scene.add(cylShell);
 
   const topCap = new THREE.Mesh(
     new THREE.CircleGeometry(CR, 64),
-    new THREE.MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false })
+    new THREE.MeshBasicMaterial({color: AMBER, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false})
   );
-  topCap.rotation.x = -Math.PI / 2; topCap.position.y = PH; scene.add(topCap);
+  topCap.rotation.x = -Math.PI/2; topCap.position.y = PH; scene.add(topCap);
 
-  // --- LIT VOLUME: TAPER (0–13 ft) cool gray ---
-  const taperShell = new THREE.Mesh(
-    new THREE.CylinderGeometry(CR, 1.0, TAPER_H, 48, 1, true),
-    new THREE.MeshBasicMaterial({ color: COOL, transparent: true, opacity: 0.05, side: THREE.DoubleSide, depthWrite: false })
-  );
-  taperShell.position.y = TAPER_H / 2; scene.add(taperShell);
-
-  const btmCap = new THREE.Mesh(
-    new THREE.CircleGeometry(1.0, 32),
-    new THREE.MeshBasicMaterial({ color: COOL, transparent: true, opacity: 0.03, side: THREE.DoubleSide, depthWrite: false })
-  );
-  btmCap.rotation.x = -Math.PI / 2; btmCap.position.y = 0.05; scene.add(btmCap);
-
-  // Junction ring at 13 ft
-  const jRing = new THREE.Mesh(
-    new THREE.RingGeometry(CR - 0.08, CR + 0.08, 64),
-    new THREE.MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false })
-  );
-  jRing.rotation.x = -Math.PI / 2; jRing.position.y = TAPER_H; scene.add(jRing);
-
-  // Horizontal rings
+  // Cylinder horizontal rings
   [20, 30, 40, 50].forEach(y => {
     const r = new THREE.Mesh(
       new THREE.RingGeometry(CR - 0.05, CR + 0.05, 64),
-      new THREE.MeshBasicMaterial({ color: AMBER, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false })
+      new THREE.MeshBasicMaterial({color: AMBER, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false})
     );
-    r.rotation.x = -Math.PI / 2; r.position.y = y; scene.add(r);
+    r.rotation.x = -Math.PI/2; r.position.y = y; scene.add(r);
   });
 
-  // Vertical edge lines
+  // --- LIT VOLUME: LOWER DOME (cool tone) ---
+  // Dome represents the arc the flag corner sweeps at half-staff with varying wind.
+  // Radius = hypotenuse of flag = sqrt(12^2 + 18^2) = 21.63 ft
+  // Center at (0, HST, 0) = half-staff top grommet position
+  // Dome spans from y=13 (cylinder junction, r=18) to y=HST-HYP (~3.37, r=0)
+  const HYP = Math.sqrt(FH*FH + FF*FF); // 21.63 ft
+  const DOME_BTM = HST - HYP; // ~3.37 ft above roof
+  const DOME_CENTER_Y = HST;
+
+  // Build dome as parametric surface
+  function buildDomeGeometry(radialSegs, heightSegs) {
+    const vertices = [];
+    const indices = [];
+
+    for (let iy = 0; iy <= heightSegs; iy++) {
+      // y goes from TAPER_H (top, wide) to DOME_BTM (bottom, point)
+      const t = iy / heightSegs;
+      const y = TAPER_H + (DOME_BTM - TAPER_H) * t;
+      // At this y, what's the radius that's HYP away from (0, DOME_CENTER_Y, 0)?
+      const dy = DOME_CENTER_Y - y;
+      const r = Math.sqrt(Math.max(0, HYP*HYP - dy*dy));
+
+      for (let ir = 0; ir <= radialSegs; ir++) {
+        const a = (ir / radialSegs) * Math.PI * 2;
+        vertices.push(Math.cos(a) * r, y, Math.sin(a) * r);
+      }
+    }
+
+    const stride = radialSegs + 1;
+    for (let iy = 0; iy < heightSegs; iy++) {
+      for (let ir = 0; ir < radialSegs; ir++) {
+        const a = iy * stride + ir;
+        const b = a + 1;
+        const c = a + stride;
+        const d = c + 1;
+        indices.push(a, b, c);
+        indices.push(b, d, c);
+      }
+    }
+
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    g.setIndex(indices);
+    g.computeVertexNormals();
+    return g;
+  }
+
+  const dome = new THREE.Mesh(
+    buildDomeGeometry(48, 24),
+    new THREE.MeshBasicMaterial({color: COOL, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false})
+  );
+  scene.add(dome);
+
+  // Junction ring at 13 ft (distinct boundary marker)
+  const jRing = new THREE.Mesh(
+    new THREE.RingGeometry(CR - 0.1, CR + 0.1, 64),
+    new THREE.MeshBasicMaterial({color: AMBER, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false})
+  );
+  jRing.rotation.x = -Math.PI/2; jRing.position.y = TAPER_H; scene.add(jRing);
+
+  // Vertical edges on cylinder + curved edges on dome
   for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2;
+    const a = (i/16) * Math.PI * 2;
     const cx = Math.cos(a), cz = Math.sin(a);
+    // Cylinder vertical
     scene.add(new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(cx * CR, TAPER_H, cz * CR),
-        new THREE.Vector3(cx * CR, PH, cz * CR)
+        new THREE.Vector3(cx*CR, TAPER_H, cz*CR),
+        new THREE.Vector3(cx*CR, PH, cz*CR)
       ]),
-      new THREE.LineBasicMaterial({ color: AMBER, transparent: true, opacity: 0.08 })
+      new THREE.LineBasicMaterial({color: AMBER, transparent: true, opacity: 0.1})
     ));
+    // Dome curved edge (multi-segment arc from (CR, TAPER_H) down to (0, DOME_BTM))
+    const arcPts = [];
+    const ARC_SEGS = 16;
+    for (let j = 0; j <= ARC_SEGS; j++) {
+      const t = j / ARC_SEGS;
+      const y = TAPER_H + (DOME_BTM - TAPER_H) * t;
+      const dy = DOME_CENTER_Y - y;
+      const r = Math.sqrt(Math.max(0, HYP*HYP - dy*dy));
+      arcPts.push(new THREE.Vector3(cx*r, y, cz*r));
+    }
     scene.add(new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(cx * 1.0, 0, cz * 1.0),
-        new THREE.Vector3(cx * CR, TAPER_H, cz * CR)
-      ]),
-      new THREE.LineBasicMaterial({ color: COOL, transparent: true, opacity: 0.06 })
+      new THREE.BufferGeometry().setFromPoints(arcPts),
+      new THREE.LineBasicMaterial({color: COOL, transparent: true, opacity: 0.08})
     ));
   }
 
-  // --- FLAGS ---
+  // ========================================
+  // FLAGS
+  // ========================================
   const flagAnimData = [];
-  const windFlags = [], limpFlags = [];
+  const flagGroups = { wind: new THREE.Group(), none: new THREE.Group() };
 
-  function createWindFlag(topY, opacity) {
+  function createWindFlag(topY, opacity, intensity) {
+    // intensity: 0.3 = moderate, 1.0 = typical
+    // Both conditions have near-full fly extension - what changes is angle, looseness, flutter
     const grp = new THREE.Group();
-    const ext = FF * 0.85;
-    const geo = new THREE.PlaneGeometry(ext, FH, 32, 10);
+    const segX = 32, segY = 12;
+
+    // Extension: 100% for typical, 82% for moderate
+    const ext = FF * (0.82 + 0.18 * intensity);
+
+    // Overall tilt angle below horizontal
+    const droopAngle = (1 - intensity) * 0.55;
+
+    const geo = new THREE.PlaneGeometry(ext, FH, segX, segY);
     const pos = geo.attributes.position;
     const basePos = new Float32Array(pos.count * 3);
+
     for (let i = 0; i < pos.count; i++) {
       const lx = pos.getX(i), ly = pos.getY(i);
-      const nx = (lx + ext / 2) / ext, ny = (ly + FH / 2) / FH;
-      const droop = (nx * nx * 0.4) * ny + (nx * nx * 2.5) * (1 - ny);
-      const lift = (1 - nx) * 0.4 * (ny - 0.5);
-      const finalY = ly - droop + lift;
-      basePos[i * 3] = lx; basePos[i * 3 + 1] = finalY; basePos[i * 3 + 2] = 0;
+      const nx = (lx + ext/2) / ext;
+      const ny = (ly + FH/2) / FH;
+
+      const tilt = (lx + ext/2) * Math.sin(droopAngle);
+
+      const catenaryDepth = (1 - intensity) * 1.5 + 0.4;
+      const bottomSag = Math.sin(nx * Math.PI) * catenaryDepth;
+      const sagMask = Math.max(0, 1 - ny * 1.5);
+      const bottomEdgeSag = bottomSag * sagMask;
+
+      const billowAmt = (1 - intensity * 0.4) * 1.2;
+      const billowProfile = Math.sin(nx * Math.PI * 0.7) * Math.sin(ny * Math.PI);
+      const billowZ = billowProfile * billowAmt * nx;
+
+      const finalY = ly - tilt - bottomEdgeSag;
+
+      basePos[i*3] = lx;
+      basePos[i*3+1] = finalY;
+      basePos[i*3+2] = billowZ;
+
       pos.setY(i, finalY);
-      pos.setZ(i, Math.sin(nx * Math.PI * 2.8) * nx * nx * nx * 2.0);
+      pos.setZ(i, billowZ);
     }
     geo.computeVertexNormals();
-    flagAnimData.push({ geo, basePos, ext, type: 'wind' });
-    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-      color: FLAG_COL, transparent: true, opacity,
-      side: THREE.DoubleSide, roughness: 0.8, emissive: FLAG_COL, emissiveIntensity: 0.15
-    }));
-    mesh.position.set(ext / 2 + 0.5, topY - FH / 2, 0);
+    flagAnimData.push({ geo, basePos, ext, type: 'wind', intensity });
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: FLAG_COL, transparent: true, opacity: opacity,
+      side: THREE.DoubleSide, roughness: 0.8,
+      emissive: FLAG_COL, emissiveIntensity: 0.2
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(ext/2 + 0.5, topY - FH/2, 0);
+    grp.add(mesh);
+
+    grp.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0.5, topY+0.3, 0),
+        new THREE.Vector3(0.5, topY-FH-0.2, 0)
+      ]),
+      new THREE.LineBasicMaterial({color: FLAG_COL, transparent: true, opacity: opacity+0.15})
+    ));
+    return grp;
+  }
+
+  // ------------------------------------------------------------------
+  // MODERATE FLAG VARIANTS - each modeled after a specific reference photo
+  // ------------------------------------------------------------------
+
+  // VARIANT A: Sunset flag (ref 1)
+  function createModerateFlagA(topY, opacity) {
+    const grp = new THREE.Group();
+    const segX = 48, segY = 16;
+    const ext = FF * 0.85;
+    const droopAngle = 0.50;
+
+    const geo = new THREE.PlaneGeometry(ext, FH, segX, segY);
+    const pos = geo.attributes.position;
+
+    const foldStart = 0.55;
+
+    for (let i = 0; i < pos.count; i++) {
+      const lx = pos.getX(i), ly = pos.getY(i);
+      const nx = (lx + ext/2) / ext;
+      const ny = (ly + FH/2) / FH;
+
+      const tilt = (lx + ext/2) * Math.sin(droopAngle);
+
+      let finalX = lx;
+      let finalY = ly - tilt;
+      let finalZ = 0;
+
+      if (nx <= foldStart) {
+        const bodyBillow = Math.sin(nx * Math.PI / (foldStart * 2)) * Math.sin(ny * Math.PI) * 1.2 * nx;
+        finalZ = bodyBillow;
+        const sag = Math.sin(nx * Math.PI / foldStart) * 0.6 * Math.max(0, 1 - ny * 2);
+        finalY -= sag;
+      } else {
+        const t = (nx - foldStart) / (1 - foldStart);
+
+        const foldXBack = t * (ext * 0.35);
+        finalX = lx - foldXBack;
+
+        const dropBelow = t * 2.5 + t * t * 1.5;
+        finalY = ly - tilt - dropBelow;
+
+        finalZ = -t * 2.0 - Math.sin(t * Math.PI) * 1.5;
+
+        finalY += Math.sin(t * Math.PI * 1.5) * 0.3;
+      }
+
+      pos.setX(i, finalX);
+      pos.setY(i, finalY);
+      pos.setZ(i, finalZ);
+    }
+    geo.computeVertexNormals();
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: FLAG_COL, transparent: true, opacity: opacity,
+      side: THREE.DoubleSide, roughness: 0.85,
+      emissive: FLAG_COL, emissiveIntensity: 0.2
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(ext/2 + 0.5, topY - FH/2, 0);
     grp.add(mesh);
     grp.add(new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0.5, topY + 0.3, 0),
-        new THREE.Vector3(0.5, topY - FH - 0.2, 0)
+        new THREE.Vector3(0.5, topY+0.3, 0),
+        new THREE.Vector3(0.5, topY-FH-0.2, 0)
       ]),
-      new THREE.LineBasicMaterial({ color: FLAG_COL, transparent: true, opacity: opacity + 0.15 })
+      new THREE.LineBasicMaterial({color: FLAG_COL, transparent: true, opacity: opacity+0.15})
+    ));
+    return grp;
+  }
+
+  // VARIANT B: Blue sky twisted flag (ref 2)
+  function createModerateFlagB(topY, opacity) {
+    const grp = new THREE.Group();
+    const segX = 44, segY = 18;
+    const ext = FF * 0.75;
+    const droopAngle = 0.30;
+
+    const geo = new THREE.PlaneGeometry(ext, FH, segX, segY);
+    const pos = geo.attributes.position;
+
+    for (let i = 0; i < pos.count; i++) {
+      const lx = pos.getX(i), ly = pos.getY(i);
+      const nx = (lx + ext/2) / ext;
+      const ny = (ly + FH/2) / FH;
+
+      const tilt = (lx + ext/2) * Math.sin(droopAngle);
+
+      const twistAngle = nx * nx * 1.4;
+
+      const dyFromAxis = (ny - 0.5) * FH;
+
+      const rotatedDy = dyFromAxis * Math.cos(twistAngle);
+      const rotatedDz = -dyFromAxis * Math.sin(twistAngle);
+
+      const newY = rotatedDy;
+
+      let finalY = newY - tilt;
+
+      if (ny < 0.5) {
+        const catSag = Math.sin(nx * Math.PI) * 1.0 * (0.5 - ny) * 2;
+        finalY -= catSag;
+      }
+
+      const bodyBillow = Math.sin(nx * Math.PI * 0.8) * Math.sin(ny * Math.PI) * 0.6 * nx * (1 - nx * 0.5);
+
+      pos.setY(i, finalY);
+      pos.setZ(i, rotatedDz + bodyBillow);
+    }
+    geo.computeVertexNormals();
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: FLAG_COL, transparent: true, opacity: opacity,
+      side: THREE.DoubleSide, roughness: 0.85,
+      emissive: FLAG_COL, emissiveIntensity: 0.2
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(ext/2 + 0.5, topY - FH/2, 0);
+    grp.add(mesh);
+    grp.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0.5, topY+0.3, 0),
+        new THREE.Vector3(0.5, topY-FH-0.2, 0)
+      ]),
+      new THREE.LineBasicMaterial({color: FLAG_COL, transparent: true, opacity: opacity+0.15})
+    ));
+    return grp;
+  }
+
+  // VARIANT C: Tree-background S-wave (ref 3)
+  function createModerateFlagC(topY, opacity) {
+    const grp = new THREE.Group();
+    const segX = 40, segY = 16;
+    const ext = FF * 0.72;
+    const droopAngle = 0.60;
+
+    const geo = new THREE.PlaneGeometry(ext, FH, segX, segY);
+    const pos = geo.attributes.position;
+
+    for (let i = 0; i < pos.count; i++) {
+      const lx = pos.getX(i), ly = pos.getY(i);
+      const nx = (lx + ext/2) / ext;
+      const ny = (ly + FH/2) / FH;
+
+      const tilt = (lx + ext/2) * Math.sin(droopAngle);
+
+      const waveAmp = nx * 1.8;
+      const waveY = Math.sin(nx * Math.PI * 2.2) * waveAmp;
+
+      const flyDroop = nx > 0.6
+        ? (nx - 0.6) * (nx - 0.6) * 4 * (1 - ny * 0.4)
+        : 0;
+
+      const waveBillow = Math.sin(nx * Math.PI * 2.2 + 0.3) * Math.sin(ny * Math.PI) * 1.5 * nx;
+
+      const foldZ = nx > 0.3 && nx < 0.7
+        ? Math.sin((nx - 0.3) * Math.PI * 2.5) * 0.6 * Math.sin(ny * Math.PI)
+        : 0;
+
+      const finalY = ly - tilt - waveY - flyDroop;
+
+      pos.setY(i, finalY);
+      pos.setZ(i, waveBillow + foldZ);
+    }
+    geo.computeVertexNormals();
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: FLAG_COL, transparent: true, opacity: opacity,
+      side: THREE.DoubleSide, roughness: 0.85,
+      emissive: FLAG_COL, emissiveIntensity: 0.2
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(ext/2 + 0.5, topY - FH/2, 0);
+    grp.add(mesh);
+    grp.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0.5, topY+0.3, 0),
+        new THREE.Vector3(0.5, topY-FH-0.2, 0)
+      ]),
+      new THREE.LineBasicMaterial({color: FLAG_COL, transparent: true, opacity: opacity+0.15})
     ));
     return grp;
   }
 
   function createLimpFlag(topY, opacity) {
     const grp = new THREE.Group();
-    const hw = 3.5, hh = FH + 4;
-    const geo = new THREE.PlaneGeometry(hw, hh, 12, 16);
-    const pos = geo.attributes.position;
-    const basePos = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i++) {
-      const lx = pos.getX(i), ly = pos.getY(i);
-      const ny = 1 - (ly + hh / 2) / hh;
-      const nx = (lx + hw / 2) / hw;
-      const billow = Math.sin(nx * Math.PI) * Math.sin(ny * Math.PI * 0.7) * 1.2;
-      const gather = ny > 0.7 ? (ny - 0.7) * 3 * (0.5 - Math.abs(nx - 0.5)) : 0;
-      basePos[i * 3] = lx; basePos[i * 3 + 1] = ly; basePos[i * 3 + 2] = billow - gather;
-      pos.setZ(i, billow - gather);
+    const segU = 12;
+    const segV = 24;
+
+    const vertices = [];
+    const indices = [];
+
+    const gatherX = 3.0;
+    const gatherY = -21.6;
+
+    const hoistX = 0.3;
+
+    for (let iu = 0; iu <= segU; iu++) {
+      const u = iu / segU;
+      const hx = hoistX;
+      const hy = -u * FH;
+
+      for (let iv = 0; iv <= segV; iv++) {
+        const v = iv / segV;
+
+        const targetX = gatherX;
+        const targetY = gatherY;
+
+        let x = hx + (targetX - hx) * v;
+        let y = hy + (targetY - hy) * v;
+        let z = 0;
+
+        const sagAmount = Math.sin(v * Math.PI) * 1.5;
+        y -= sagAmount;
+
+        const billowZ = Math.sin(v * Math.PI) * Math.sin(u * Math.PI) * 0.8;
+        z += billowZ;
+
+        const foldFreq = 2.5;
+        const foldAmp = 0.35 * Math.sin(v * Math.PI);
+        const foldDir = Math.sin(u * Math.PI * foldFreq + v * 3) * foldAmp;
+        x += foldDir * 0.3;
+        z += foldDir;
+
+        const twistAmount = (u - 0.5) * Math.sin(v * Math.PI * 1.2) * 0.4;
+        z += twistAmount;
+
+        vertices.push(x, y, z);
+      }
     }
+
+    const stride = segV + 1;
+    for (let iu = 0; iu < segU; iu++) {
+      for (let iv = 0; iv < segV; iv++) {
+        const a = iu * stride + iv;
+        const b = a + 1;
+        const c = a + stride;
+        const d = c + 1;
+        indices.push(a, b, c);
+        indices.push(b, d, c);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geo.setIndex(indices);
     geo.computeVertexNormals();
-    flagAnimData.push({ geo, basePos, ext: hw, type: 'limp' });
-    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
-      color: FLAG_COL, transparent: true, opacity,
-      side: THREE.DoubleSide, roughness: 0.9, emissive: FLAG_COL, emissiveIntensity: 0.08
-    }));
-    mesh.position.set(hw / 2 + 0.4, topY - hh / 2, 0);
+
+    const basePos = new Float32Array(vertices);
+    flagAnimData.push({ geo, basePos, type: 'limp_literal', segU, segV });
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: FLAG_COL, transparent: true, opacity: opacity,
+      side: THREE.DoubleSide, roughness: 0.9,
+      emissive: FLAG_COL, emissiveIntensity: 0.2
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0, topY, 0);
     grp.add(mesh);
+
+    grp.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(hoistX, topY, 0),
+        new THREE.Vector3(hoistX, topY - FH, 0)
+      ]),
+      new THREE.LineBasicMaterial({color: FLAG_COL, transparent: true, opacity: opacity + 0.2})
+    ));
+
     return grp;
   }
 
-  const wf1 = createWindFlag(PH, 0.8); scene.add(wf1); windFlags.push(wf1);
-  const wf2 = createWindFlag(HST, 0.5); scene.add(wf2); windFlags.push(wf2);
-  const lf1 = createLimpFlag(PH, 0.5); scene.add(lf1); limpFlags.push(lf1);
-  const lf2 = createLimpFlag(HST, 0.3); scene.add(lf2); limpFlags.push(lf2);
+  // Build flag groups
+  const FLAG_OPACITY = 0.85;
+  flagGroups.wind.add(createWindFlag(PH, FLAG_OPACITY, 1.0));
+  flagGroups.wind.add(createWindFlag(HST, FLAG_OPACITY, 1.0));
 
-  // Half-staff dashed lines
-  function addDashed(y, op) {
-    const g = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(-CR - 3, y, 0), new THREE.Vector3(CR + 3, y, 0)
-    ]);
-    const l = new THREE.Line(g, new THREE.LineDashedMaterial({
-      color: FLAG_COL, transparent: true, opacity: op, dashSize: 1, gapSize: 0.5
-    }));
-    l.computeLineDistances(); scene.add(l);
-  }
-  addDashed(HST, 0.2);
-  addDashed(TAPER_H, 0.12);
+  flagGroups.moderateA = new THREE.Group();
+  flagGroups.moderateA.add(createModerateFlagA(PH, FLAG_OPACITY));
+  flagGroups.moderateA.add(createModerateFlagA(HST, FLAG_OPACITY));
 
-  // --- 3D VIEW LABELS (small, only 3) ---
+  flagGroups.moderateB = new THREE.Group();
+  flagGroups.moderateB.add(createModerateFlagB(PH, FLAG_OPACITY));
+  flagGroups.moderateB.add(createModerateFlagB(HST, FLAG_OPACITY));
+
+  flagGroups.moderateC = new THREE.Group();
+  flagGroups.moderateC.add(createModerateFlagC(PH, FLAG_OPACITY));
+  flagGroups.moderateC.add(createModerateFlagC(HST, FLAG_OPACITY));
+
+  flagGroups.none = new THREE.Group();
+  flagGroups.none.add(createLimpFlag(PH, FLAG_OPACITY));
+  flagGroups.none.add(createLimpFlag(HST, FLAG_OPACITY));
+
+  scene.add(flagGroups.wind);
+  scene.add(flagGroups.moderateA);
+  scene.add(flagGroups.moderateB);
+  scene.add(flagGroups.moderateC);
+  scene.add(flagGroups.none);
+  flagGroups.none.visible = false;
+  flagGroups.moderateA.visible = false;
+  flagGroups.moderateB.visible = false;
+  flagGroups.moderateC.visible = false;
+
+  // Half-staff dashed line
+  const dashGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-CR-2, HST, 0), new THREE.Vector3(CR+2, HST, 0)
+  ]);
+  const dashLine = new THREE.Line(dashGeo, new THREE.LineDashedMaterial({
+    color: FLAG_COL, transparent: true, opacity: 0.25, dashSize: 1, gapSize: 0.5
+  }));
+  dashLine.computeLineDistances();
+  scene.add(dashLine);
+
+  // ========================================
+  // 3D VIEW LABELS (minimal, only 3)
+  // ========================================
   function makeLabel(text, fs, color) {
     const c = document.createElement('canvas');
     const ctx = c.getContext('2d');
     ctx.font = `bold ${fs}px DM Mono, monospace`;
     const m = ctx.measureText(text);
-    const w = m.width + 16, h = fs + 8;
-    c.width = w * 2; c.height = h * 2; ctx.scale(2, 2);
-    ctx.fillStyle = 'rgba(10,14,20,0.8)';
+    const w = m.width + 16, h = fs + 10;
+    c.width = w*2; c.height = h*2; ctx.scale(2,2);
+    ctx.fillStyle = 'rgba(10,14,20,0.88)';
     ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(0, 0, w, h, 3); else ctx.rect(0, 0, w, h);
+    if (ctx.roundRect) ctx.roundRect(0,0,w,h,3); else ctx.rect(0,0,w,h);
     ctx.fill();
     ctx.font = `bold ${fs}px DM Mono, monospace`;
-    ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(text, w / 2, h / 2);
+    ctx.fillStyle = color; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(text, w/2, h/2);
     return c;
   }
-  function add3DLabel(text, pos, scale, color) {
-    const c = makeLabel(text, 8, color || '#ffdc78');
+  function addSprite(text, pos, scale, color, parent) {
+    const c = makeLabel(text, 11, color || '#ffdc78');
     const tex = new THREE.CanvasTexture(c); tex.minFilter = THREE.LinearFilter;
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: tex, transparent: true, depthWrite: false, depthTest: false
+    }));
     s.position.copy(pos);
-    s.scale.set(scale * (c.width / c.height), scale, 1);
-    s.layers.set(1); // Only visible in perspective view
-    scene.add(s);
+    const sc = scale || 4;
+    s.scale.set(sc*(c.width/c.height), sc, 1);
+    (parent || scene).add(s);
+    return s;
   }
-  add3DLabel('50 ft pole', new THREE.Vector3(-2, PH / 2, 1), 1.5, '#ffdc78');
-  add3DLabel('36 ft dia', new THREE.Vector3(0, TAPER_H + 3, CR + 2), 1.5, '#ffb43c');
-  add3DLabel('18 ft fly', new THREE.Vector3(FF * 0.42, PH + 1.5, 0), 1.5, '#e06060');
 
-  // --- FLAG STATE TOGGLE ---
-  let flagMode = 'wind';
-  function setFlagMode(mode) {
-    flagMode = mode;
-    windFlags.forEach(f => f.visible = mode === 'wind');
-    limpFlags.forEach(f => f.visible = mode === 'nowind');
-    document.querySelectorAll('.flag-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-  }
-  setFlagMode('wind');
-  document.querySelectorAll('.flag-btn').forEach(b => b.addEventListener('click', () => setFlagMode(b.dataset.mode)));
+  // Only 3 labels in 3D view
+  const mainViewLabels = new THREE.Group();
+  scene.add(mainViewLabels);
+  addSprite('50 ft pole', new THREE.Vector3(-3, 25, 0), 4, '#ffdc78', mainViewLabels);
+  addSprite('36 ft dia', new THREE.Vector3(0, 1.5, CR+3), 4, '#ffb43c', mainViewLabels);
+  addSprite('18 ft fly', new THREE.Vector3(9, PH+2, 0), 3.5, '#e06060', mainViewLabels);
 
-  // --- DETAILS TOGGLE ---
-  document.getElementById('detailsToggle').addEventListener('click', function() {
-    const body = document.getElementById('detailsBody');
-    const open = body.classList.toggle('open');
-    this.innerHTML = (open ? '&#9650;' : '&#9660;') + ' Details';
-  });
+  // ========================================
+  // LIGHTS
+  // ========================================
+  scene.add(new THREE.AmbientLight(0x4466aa, 0.5));
+  const dl = new THREE.DirectionalLight(0xffeedd, 0.6);
+  dl.position.set(30, 50, 20); scene.add(dl);
+  const pl = new THREE.PointLight(AMBER, 0.15, 120);
+  pl.position.set(0, 25, 0); scene.add(pl);
+  const fl = new THREE.PointLight(0xff8888, 0.25, 80);
+  fl.position.set(10, 40, 10); scene.add(fl);
 
-  // --- ORBIT CONTROLS ---
-  let drag = false, prev = { x: 0, y: 0 };
-  let sph = { theta: Math.PI / 4.2, phi: Math.PI / 3.5, radius: 110 };
-  let lastInt = 0, autoRot = true;
+  // ========================================
+  // RENDERER 1: MAIN 3D PERSPECTIVE VIEW
+  // ========================================
+  const mainContainer = document.getElementById('main-view');
+  const mainCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 600);
+  const mainRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  mainRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  mainRenderer.setClearColor(0x0a0e14);
+  mainContainer.appendChild(mainRenderer.domElement);
 
-  function updPersp() {
-    camPersp.position.set(
-      sph.radius * Math.sin(sph.phi) * Math.cos(sph.theta),
-      sph.radius * Math.cos(sph.phi),
-      sph.radius * Math.sin(sph.phi) * Math.sin(sph.theta)
+  let mainSph = {theta: Math.PI/4.2, phi: Math.PI/3.1, radius: 105};
+  let mainDrag = false, mainPrev = {x:0,y:0}, mainLastInt = 0, mainAutoRot = true;
+
+  function updMainCam() {
+    mainCamera.position.set(
+      mainSph.radius*Math.sin(mainSph.phi)*Math.cos(mainSph.theta),
+      mainSph.radius*Math.cos(mainSph.phi),
+      mainSph.radius*Math.sin(mainSph.phi)*Math.sin(mainSph.theta)
     );
-    camPersp.lookAt(0, 22, 0);
-  }
-  updPersp();
-
-  function getRect(id) { return document.getElementById(id).getBoundingClientRect(); }
-
-  function detectView(ex, ey) {
-    const mr = getRect('main-view'), er = getRect('elev-view'), pr = getRect('plan-view');
-    if (ex >= mr.left && ex <= mr.right && ey >= mr.top && ey <= mr.bottom) return 'main';
-    if (ex >= er.left && ex <= er.right && ey >= er.top && ey <= er.bottom) return 'elev';
-    if (ex >= pr.left && ex <= pr.right && ey >= pr.top && ey <= pr.bottom) return 'plan';
-    return 'none';
+    mainCamera.lookAt(0, 23, 0);
   }
 
-  // Ortho zoom
-  let elevZoom = 1, planZoom = 1;
-  function updateElevFrustum() {
-    const r = getRect('elev-view');
-    if (r.width === 0 || r.height === 0) return;
-    const aspect = r.width / r.height;
-    const hh = 35 * elevZoom;
-    camElev.left = -hh * aspect; camElev.right = hh * aspect;
-    camElev.top = hh + 18; camElev.bottom = -hh + 18;
-    camElev.updateProjectionMatrix();
-  }
-  function updatePlanFrustum() {
-    const r = getRect('plan-view');
-    if (r.width === 0 || r.height === 0) return;
-    const aspect = r.width / r.height;
-    const hh = 28 * planZoom;
-    camPlan.left = -hh * aspect; camPlan.right = hh * aspect;
-    camPlan.top = hh; camPlan.bottom = -hh;
-    camPlan.updateProjectionMatrix();
-  }
-
-  window.addEventListener('mousedown', e => {
-    if (detectView(e.clientX, e.clientY) === 'main') {
-      drag = true; autoRot = false; lastInt = Date.now();
-      prev = { x: e.clientX, y: e.clientY };
-    }
+  const mainCv = mainRenderer.domElement;
+  mainCv.addEventListener('mousedown', e=>{mainDrag=true; mainAutoRot=false; mainLastInt=Date.now(); mainPrev={x:e.clientX,y:e.clientY};});
+  mainCv.addEventListener('mousemove', e=>{
+    if(!mainDrag) return;
+    mainSph.theta -= (e.clientX-mainPrev.x)*0.005;
+    mainSph.phi = Math.max(0.15, Math.min(Math.PI/2.1, mainSph.phi+(e.clientY-mainPrev.y)*0.005));
+    mainPrev = {x:e.clientX,y:e.clientY};
+    updMainCam();
   });
-  window.addEventListener('mousemove', e => {
-    if (drag) {
-      sph.theta -= (e.clientX - prev.x) * 0.005;
-      sph.phi = Math.max(0.15, Math.min(Math.PI / 2.1, sph.phi + (e.clientY - prev.y) * 0.005));
-      prev = { x: e.clientX, y: e.clientY }; updPersp();
-    }
-  });
-  window.addEventListener('mouseup', () => { drag = false; lastInt = Date.now(); });
-
-  window.addEventListener('wheel', e => {
-    const view = detectView(e.clientX, e.clientY);
-    if (view === 'main') {
-      sph.radius = Math.max(35, Math.min(180, sph.radius + e.deltaY * 0.06));
-      autoRot = false; lastInt = Date.now(); updPersp();
-    } else if (view === 'elev') {
-      elevZoom = Math.max(0.4, Math.min(2.5, elevZoom + e.deltaY * 0.001));
-      updateElevFrustum();
-    } else if (view === 'plan') {
-      planZoom = Math.max(0.4, Math.min(2.5, planZoom + e.deltaY * 0.001));
-      updatePlanFrustum();
-    }
+  mainCv.addEventListener('mouseup', ()=>{mainDrag=false; mainLastInt=Date.now();});
+  mainCv.addEventListener('mouseleave', ()=>{mainDrag=false; mainLastInt=Date.now();});
+  mainCv.addEventListener('wheel', e=>{
     e.preventDefault();
-  }, { passive: false });
-
-  // Touch
-  window.addEventListener('touchstart', e => {
-    if (e.touches.length === 1 && detectView(e.touches[0].clientX, e.touches[0].clientY) === 'main') {
-      drag = true; autoRot = false; lastInt = Date.now();
-      prev = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }
-  });
-  window.addEventListener('touchmove', e => {
-    if (drag && e.touches.length === 1) {
+    mainSph.radius = Math.max(35, Math.min(180, mainSph.radius + e.deltaY*0.06));
+    mainAutoRot=false; mainLastInt=Date.now();
+    updMainCam();
+  }, {passive: false});
+  mainCv.addEventListener('touchstart', e=>{if(e.touches.length===1){mainDrag=true; mainAutoRot=false; mainLastInt=Date.now(); mainPrev={x:e.touches[0].clientX,y:e.touches[0].clientY};}});
+  mainCv.addEventListener('touchmove', e=>{
+    if(e.touches.length===1 && mainDrag){
       e.preventDefault();
-      sph.theta -= (e.touches[0].clientX - prev.x) * 0.005;
-      sph.phi = Math.max(0.15, Math.min(Math.PI / 2.1, sph.phi + (e.touches[0].clientY - prev.y) * 0.005));
-      prev = { x: e.touches[0].clientX, y: e.touches[0].clientY }; updPersp();
+      mainSph.theta -= (e.touches[0].clientX-mainPrev.x)*0.005;
+      mainSph.phi = Math.max(0.15, Math.min(Math.PI/2.1, mainSph.phi+(e.touches[0].clientY-mainPrev.y)*0.005));
+      mainPrev={x:e.touches[0].clientX,y:e.touches[0].clientY};
+      updMainCam();
     }
-  }, { passive: false });
-  window.addEventListener('touchend', () => { drag = false; lastInt = Date.now(); });
+  }, {passive:false});
+  mainCv.addEventListener('touchend', ()=>{mainDrag=false; mainLastInt=Date.now();});
 
-  // --- 2D OVERLAY ANNOTATIONS ---
-  const elevCanvas = document.getElementById('elevOverlay');
-  const planCanvas = document.getElementById('planOverlay');
-  const elevCtx = elevCanvas.getContext('2d');
-  const planCtx = planCanvas.getContext('2d');
+  // ========================================
+  // RENDERER 2: ELEVATION VIEW (orthographic, front)
+  // ========================================
+  const elevContainer = document.getElementById('elev-view');
+  const elevRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  elevRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  elevRenderer.setClearColor(0x0a0e14);
+  elevContainer.appendChild(elevRenderer.domElement);
 
-  function worldToElev(x, y, z) {
-    // Elevation looks from +Z: screen X = world X, screen Y = world Y (inverted)
-    const v = new THREE.Vector3(x, y, z);
-    v.project(camElev);
-    const r = getRect('elev-view');
+  let elevZoom = 30;
+  const elevCamera = new THREE.OrthographicCamera(-elevZoom, elevZoom, elevZoom, -elevZoom, 0.1, 500);
+  elevCamera.position.set(0, 25, 100);
+  elevCamera.lookAt(0, 25, 0);
+
+  elevRenderer.domElement.addEventListener('wheel', e=>{
+    e.preventDefault();
+    elevZoom = Math.max(15, Math.min(80, elevZoom + e.deltaY*0.04));
+    updateElevCamera();
+  }, {passive:false});
+
+  function updateElevCamera() {
+    const r = elevContainer.clientWidth / elevContainer.clientHeight;
+    elevCamera.left = -elevZoom * r;
+    elevCamera.right = elevZoom * r;
+    elevCamera.top = elevZoom;
+    elevCamera.bottom = -elevZoom;
+    elevCamera.updateProjectionMatrix();
+  }
+
+  // ========================================
+  // RENDERER 3: PLAN VIEW (orthographic, top-down)
+  // ========================================
+  const planContainer = document.getElementById('plan-view');
+  const planRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  planRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  planRenderer.setClearColor(0x0a0e14);
+  planContainer.appendChild(planRenderer.domElement);
+
+  let planZoom = 25;
+  const planCamera = new THREE.OrthographicCamera(-planZoom, planZoom, planZoom, -planZoom, 0.1, 500);
+  planCamera.position.set(0, 200, 0);
+  planCamera.lookAt(0, 0, 0);
+  planCamera.up.set(0, 0, -1);
+
+  planRenderer.domElement.addEventListener('wheel', e=>{
+    e.preventDefault();
+    planZoom = Math.max(10, Math.min(60, planZoom + e.deltaY*0.04));
+    updatePlanCamera();
+  }, {passive:false});
+
+  function updatePlanCamera() {
+    const r = planContainer.clientWidth / planContainer.clientHeight;
+    planCamera.left = -planZoom * r;
+    planCamera.right = planZoom * r;
+    planCamera.top = planZoom;
+    planCamera.bottom = -planZoom;
+    planCamera.updateProjectionMatrix();
+  }
+
+  // ========================================
+  // ORTHOGRAPHIC VIEW OVERLAYS (dimension labels)
+  // ========================================
+
+  function createOverlayLabel(parent, text, className, color) {
+    const el = document.createElement('div');
+    el.textContent = text;
+    el.style.cssText = `
+      position: absolute;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: ${color};
+      background: rgba(10,14,20,0.88);
+      padding: 2px 6px;
+      border-radius: 2px;
+      pointer-events: none;
+      white-space: nowrap;
+      transform: translate(-50%, -50%);
+    `;
+    el.className = className;
+    parent.appendChild(el);
+    return el;
+  }
+
+  // Elevation overlays
+  const elevLabels = {
+    pole: createOverlayLabel(elevContainer, '50 ft pole', 'e-label', '#ffdc78'),
+    cyl: createOverlayLabel(elevContainer, '37 ft cyl.', 'e-label', '#ffb43c'),
+    taper: createOverlayLabel(elevContainer, 'dome r=21.6 ft', 'e-label', '#8899aa'),
+    halfStaff: createOverlayLabel(elevContainer, 'half staff 25 ft', 'e-label', '#886655'),
+    flagHoist: createOverlayLabel(elevContainer, '12 ft hoist', 'e-label', '#e06060'),
+    repose: createOverlayLabel(elevContainer, 'repose ~13 ft', 'e-label', '#886655'),
+  };
+
+  // Plan overlays
+  const planLabels = {
+    dia: createOverlayLabel(planContainer, '36 ft diameter', 'p-label', '#ffb43c'),
+    rad: createOverlayLabel(planContainer, '18 ft radius', 'p-label', '#ffb43c'),
+    flyExtent: createOverlayLabel(planContainer, '18 ft fly', 'p-label', '#e06060'),
+  };
+
+  function projectToScreen(worldVec, camera, container) {
+    const v = worldVec.clone();
+    v.project(camera);
+    const rect = { w: container.clientWidth, h: container.clientHeight };
     return {
-      x: (v.x * 0.5 + 0.5) * r.width,
-      y: (-v.y * 0.5 + 0.5) * r.height
+      x: (v.x + 1) * 0.5 * rect.w,
+      y: (1 - (v.y + 1) * 0.5) * rect.h,
     };
   }
-  function worldToPlan(x, y, z) {
-    const v = new THREE.Vector3(x, y, z);
-    v.project(camPlan);
-    const r = getRect('plan-view');
-    return {
-      x: (v.x * 0.5 + 0.5) * r.width,
-      y: (-v.y * 0.5 + 0.5) * r.height
+
+  function updateElevLabels() {
+    const positions = {
+      pole: new THREE.Vector3(-CR-5, PH/2, 0),
+      cyl: new THREE.Vector3(CR+4, TAPER_H + (PH-TAPER_H)/2, 0),
+      taper: new THREE.Vector3(CR+4, TAPER_H/2, 0),
+      halfStaff: new THREE.Vector3(-CR-6, HST, 0),
+      flagHoist: new THREE.Vector3(8, PH - FH/2, 0),
+      repose: new THREE.Vector3(CR+4, TAPER_H-0.5, 0),
     };
+    for (const k in positions) {
+      const s = projectToScreen(positions[k], elevCamera, elevContainer);
+      elevLabels[k].style.left = s.x + 'px';
+      elevLabels[k].style.top = s.y + 'px';
+    }
   }
 
-  function drawDimLine(ctx, p1, p2, color, opacity) {
-    ctx.strokeStyle = color;
-    ctx.globalAlpha = opacity;
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-    // Tick marks
-    const isV = Math.abs(p2.y - p1.y) > Math.abs(p2.x - p1.x);
-    const tk = 4;
-    [p1, p2].forEach(p => {
-      ctx.beginPath();
-      if (isV) { ctx.moveTo(p.x - tk, p.y); ctx.lineTo(p.x + tk, p.y); }
-      else { ctx.moveTo(p.x, p.y - tk); ctx.lineTo(p.x, p.y + tk); }
-      ctx.stroke();
+  function updatePlanLabels() {
+    const positions = {
+      dia: new THREE.Vector3(0, 25, CR + 3),
+      rad: new THREE.Vector3(CR/2, 25, -1.5),
+      flyExtent: new THREE.Vector3(9, 25, 1.2),
+    };
+    for (const k in positions) {
+      const s = projectToScreen(positions[k], planCamera, planContainer);
+      planLabels[k].style.left = s.x + 'px';
+      planLabels[k].style.top = s.y + 'px';
+    }
+  }
+
+  // ========================================
+  // DIMENSION LINES in elevation
+  // ========================================
+  const elevDimGroup = new THREE.Group();
+  scene.add(elevDimGroup);
+
+  function dimLineElev(a, b, col, op) {
+    const mat = new THREE.LineBasicMaterial({color: col, transparent: true, opacity: op});
+    elevDimGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), mat));
+    const tk = 0.6;
+    [a, b].forEach(p => {
+      const t1 = new THREE.Vector3(p.x+tk, p.y, p.z);
+      const t2 = new THREE.Vector3(p.x-tk, p.y, p.z);
+      elevDimGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([t1, t2]), mat));
     });
-    ctx.globalAlpha = 1;
   }
 
-  function drawLabel(ctx, text, x, y, color, fontSize) {
-    const fs = fontSize || 10;
-    ctx.font = `bold ${fs}px DM Mono, monospace`;
-    const m = ctx.measureText(text);
-    const pw = 6, ph = 3;
-    const w = m.width + pw * 2, h = fs + ph * 2;
-    ctx.fillStyle = 'rgba(10,14,20,0.85)';
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x - w / 2, y - h / 2, w, h, 3);
-    else ctx.fillRect(x - w / 2, y - h / 2, w, h);
-    ctx.fill();
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(text, x, y);
+  dimLineElev(new THREE.Vector3(-CR-5, 0, 0), new THREE.Vector3(-CR-5, PH, 0), 0xffdc78, 0.5);
+  dimLineElev(new THREE.Vector3(CR+4, TAPER_H, 0), new THREE.Vector3(CR+4, PH, 0), AMBER, 0.4);
+  dimLineElev(new THREE.Vector3(CR+4, 0, 0), new THREE.Vector3(CR+4, TAPER_H, 0), COOL, 0.4);
+  dimLineElev(new THREE.Vector3(8, PH-FH, 0), new THREE.Vector3(8, PH, 0), 0xe04040, 0.5);
+
+  // Plan view dimension lines
+  const planDimGroup = new THREE.Group();
+  scene.add(planDimGroup);
+
+  function dimLinePlan(a, b, col, op) {
+    const mat = new THREE.LineBasicMaterial({color: col, transparent: true, opacity: op});
+    planDimGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), mat));
+    const tk = 0.6;
+    [a, b].forEach(p => {
+      const t1 = new THREE.Vector3(p.x, p.y, p.z+tk);
+      const t2 = new THREE.Vector3(p.x, p.y, p.z-tk);
+      planDimGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([t1, t2]), mat));
+    });
   }
 
-  function drawDashedLine(ctx, p1, p2, color, opacity) {
-    ctx.strokeStyle = color;
-    ctx.globalAlpha = opacity;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 3]);
-    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
+  dimLinePlan(new THREE.Vector3(-CR, 25, CR+3), new THREE.Vector3(CR, 25, CR+3), AMBER, 0.5);
+  dimLinePlan(new THREE.Vector3(0, 25, -0.5), new THREE.Vector3(CR, 25, -0.5), AMBER, 0.3);
+
+  // ========================================
+  // FLAG STATE TOGGLE
+  // ========================================
+  let flagState = 'wind';
+  const flagBtns = document.querySelectorAll('.flag-btn');
+  flagBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      flagBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      flagState = btn.dataset.state;
+      flagGroups.wind.visible = (flagState === 'wind');
+      flagGroups.moderateA.visible = (flagState === 'moderateA');
+      flagGroups.moderateB.visible = (flagState === 'moderateB');
+      flagGroups.moderateC.visible = (flagState === 'moderateC');
+      flagGroups.none.visible = (flagState === 'none');
+    });
+  });
+
+  // Details toggle
+  const detailsToggle = document.getElementById('details-toggle');
+  const detailsContent = document.getElementById('details-content');
+  detailsToggle.addEventListener('click', () => {
+    detailsContent.classList.toggle('open');
+    detailsToggle.innerHTML = detailsContent.classList.contains('open') ? '&#9652; hide details' : '&#9662; details';
+  });
+
+  // ========================================
+  // RESIZE HANDLING
+  // ========================================
+  function onResize() {
+    const mw = mainContainer.clientWidth, mh = mainContainer.clientHeight;
+    mainCamera.aspect = mw / mh;
+    mainCamera.updateProjectionMatrix();
+    mainRenderer.setSize(mw, mh);
+
+    const ew = elevContainer.clientWidth, eh = elevContainer.clientHeight;
+    elevRenderer.setSize(ew, eh);
+    updateElevCamera();
+
+    const pw = planContainer.clientWidth, ph = planContainer.clientHeight;
+    planRenderer.setSize(pw, ph);
+    updatePlanCamera();
   }
+  window.addEventListener('resize', onResize);
+  onResize();
+  updMainCam();
 
-  function drawElevAnnotations() {
-    const r = getRect('elev-view');
-    const dpr = window.devicePixelRatio || 1;
-    elevCanvas.width = r.width * dpr;
-    elevCanvas.height = r.height * dpr;
-    elevCanvas.style.width = r.width + 'px';
-    elevCanvas.style.height = r.height + 'px';
-    elevCtx.scale(dpr, dpr);
-
-    // Pole height (left)
-    const pl0 = worldToElev(0, 0, 0), plT = worldToElev(0, PH, 0);
-    const lx = pl0.x - 50;
-    drawDimLine(elevCtx, { x: lx, y: plT.y }, { x: lx, y: pl0.y }, '#ffdc78', 0.5);
-    drawLabel(elevCtx, '50 ft', (lx), (plT.y + pl0.y) / 2, '#ffdc78', 10);
-
-    // Cylinder height (right)
-    const rTaper = worldToElev(CR, TAPER_H, 0), rTop = worldToElev(CR, PH, 0);
-    const rx = rTop.x + 30;
-    drawDimLine(elevCtx, { x: rx, y: rTop.y }, { x: rx, y: rTaper.y }, '#ffb43c', 0.45);
-    drawLabel(elevCtx, '37 ft cyl', rx, (rTop.y + rTaper.y) / 2, '#ffb43c', 9);
-
-    // Taper height
-    const rBase = worldToElev(CR, 0, 0);
-    drawDimLine(elevCtx, { x: rx, y: rTaper.y }, { x: rx, y: rBase.y }, '#8899aa', 0.4);
-    drawLabel(elevCtx, '13 ft taper', rx, (rTaper.y + rBase.y) / 2, '#8899aa', 9);
-
-    // Flag hoist
-    const fT = worldToElev(0, PH, 0), fB = worldToElev(0, PH - FH, 0);
-    const fx = fT.x - 30;
-    drawDimLine(elevCtx, { x: fx, y: fT.y }, { x: fx, y: fB.y }, '#e06060', 0.5);
-    drawLabel(elevCtx, '12 ft hoist', fx - 5, (fT.y + fB.y) / 2, '#e06060', 9);
-
-    // Flag fly (horizontal at top)
-    const flyL = worldToElev(0.5, PH, 0), flyR = worldToElev(0.5 + FF, PH, 0);
-    const fy = flyL.y - 14;
-    drawDimLine(elevCtx, { x: flyL.x, y: fy }, { x: flyR.x, y: fy }, '#e06060', 0.4);
-    drawLabel(elevCtx, '18 ft fly', (flyL.x + flyR.x) / 2, fy - 12, '#e06060', 9);
-
-    // Half staff dashed
-    const hsL = worldToElev(-CR - 3, HST, 0), hsR = worldToElev(CR + 3, HST, 0);
-    drawDashedLine(elevCtx, hsL, hsR, '#e04040', 0.2);
-    drawLabel(elevCtx, 'half staff 25 ft', hsL.x + 40, hsL.y - 10, '#885050', 8);
-
-    // Taper boundary dashed
-    const tbL = worldToElev(-CR - 3, TAPER_H, 0), tbR = worldToElev(CR + 3, TAPER_H, 0);
-    drawDashedLine(elevCtx, tbL, tbR, '#8899aa', 0.15);
-  }
-
-  function drawPlanAnnotations() {
-    const r = getRect('plan-view');
-    const dpr = window.devicePixelRatio || 1;
-    planCanvas.width = r.width * dpr;
-    planCanvas.height = r.height * dpr;
-    planCanvas.style.width = r.width + 'px';
-    planCanvas.style.height = r.height + 'px';
-    planCtx.scale(dpr, dpr);
-
-    // Diameter (horizontal through center)
-    const dL = worldToPlan(-CR, 0.3, 0), dR = worldToPlan(CR, 0.3, 0);
-    drawDimLine(planCtx, dL, dR, '#ffb43c', 0.5);
-    drawLabel(planCtx, '36 ft dia', (dL.x + dR.x) / 2, dL.y - 14, '#ffb43c', 10);
-
-    // Radius
-    const rC = worldToPlan(0, 0.3, 0), rR = worldToPlan(0, 0.3, CR);
-    drawDimLine(planCtx, rC, rR, '#ffb43c', 0.35);
-    drawLabel(planCtx, '18 ft radius', (rC.x + rR.x) / 2, (rC.y + rR.y) / 2 + 14, '#ffb43c', 9);
-
-    // Roof deck label
-    const deckCorner = worldToPlan(20, 0, 20);
-    drawLabel(planCtx, '40×40 ft deck', deckCorner.x - 5, deckCorner.y + 12, '#556677', 8);
-  }
-
-  // --- VIEWPORT RENDERING ---
-  function renderViewport(camera, rect) {
-    const dpr = renderer.getPixelRatio();
-    const x = Math.floor(rect.left * dpr);
-    const y = Math.floor((window.innerHeight - rect.bottom) * dpr);
-    const w = Math.floor(rect.width * dpr);
-    const h = Math.floor(rect.height * dpr);
-    renderer.setViewport(x, y, w, h);
-    renderer.setScissor(x, y, w, h);
-    renderer.render(scene, camera);
-  }
-
-  // --- ANIMATION ---
+  // ========================================
+  // ANIMATION LOOP
+  // ========================================
   let time = 0;
   function animate() {
     requestAnimationFrame(animate);
     time += 0.025;
-    if (!drag && Date.now() - lastInt > 3000) autoRot = true;
-    if (autoRot) { sph.theta += 0.0015; updPersp(); }
+
+    if (!mainDrag && Date.now()-mainLastInt > 3000) mainAutoRot = true;
+    if (mainAutoRot) { mainSph.theta += 0.0015; updMainCam(); }
 
     // Animate flags
     flagAnimData.forEach(fd => {
       const pos = fd.geo.attributes.position;
-      const bp = fd.basePos, ext = fd.ext;
+      const bp = fd.basePos;
+      const ext = fd.ext;
+
       if (fd.type === 'wind') {
+        const intensity = fd.intensity !== undefined ? fd.intensity : 1.0;
         for (let i = 0; i < pos.count; i++) {
-          const lx = bp[i * 3], ly = bp[i * 3 + 1];
-          const nx = (lx + ext / 2) / ext;
-          const amp = nx * nx * nx * 2.5;
-          pos.setY(i, ly + Math.sin(nx * Math.PI * 2 - time * 3.5) * nx * nx * 0.35);
-          pos.setZ(i, Math.sin(nx * Math.PI * 2.8 - time * 4.0) * amp +
-            Math.sin(nx * Math.PI * 5.5 - time * 7.0) * amp * 0.2 +
-            (nx > 0.7 ? Math.sin(time * 11 + nx * 22) * (nx - 0.7) * 1.8 : 0));
+          const lx = bp[i*3], ly = bp[i*3+1], bz = bp[i*3+2];
+          const nx = (lx + ext/2) / ext;
+          const amp = nx*nx*nx * (0.7 + 1.5 * intensity);
+          const speed = 2.5 + 1.5 * intensity;
+          const wave1 = Math.sin(nx*Math.PI*2.8 - time*speed) * amp;
+          const wave2 = Math.sin(nx*Math.PI*5.5 - time*(speed*1.75)) * amp * 0.2;
+          const snap = (intensity > 0.7 && nx > 0.7) ? Math.sin(time*11 + nx*22) * (nx-0.7)*1.8 * intensity : 0;
+          const yOsc = Math.sin(nx*Math.PI*2 - time*3.5) * nx*nx * 0.35 * intensity;
+          pos.setY(i, ly + yOsc);
+          pos.setZ(i, bz + wave1 + wave2 + snap);
         }
-      } else if (fd.type === 'limp') {
-        for (let i = 0; i < pos.count; i++) {
-          const bz = bp[i * 3 + 2], lx = bp[i * 3], ly = bp[i * 3 + 1];
-          const nx = (lx + ext / 2) / ext;
-          const ny = 1 - (ly + fd.geo.parameters.height / 2) / fd.geo.parameters.height;
-          pos.setZ(i, bz + Math.sin(time * 1.2 + ny * 2) * 0.4 * Math.sin(nx * Math.PI) +
-            Math.sin(time * 0.8) * 0.15 * Math.sin(nx * Math.PI) * Math.sin(ny * Math.PI * 0.7));
+      } else if (fd.type === 'limp_literal') {
+        const stride = fd.segV + 1;
+        for (let iu = 0; iu <= fd.segU; iu++) {
+          for (let iv = 0; iv <= fd.segV; iv++) {
+            const i = iu * stride + iv;
+            const u = iu / fd.segU;
+            const v = iv / fd.segV;
+            const bx = bp[i*3], by = bp[i*3+1], bz = bp[i*3+2];
+
+            const swayAmp = v * 0.6;
+            const swayX = Math.sin(time * 0.8 + u * 2) * swayAmp;
+            const swayZ = Math.cos(time * 0.7 + u * 1.5 + v * 2) * swayAmp;
+            const swayY = Math.sin(time * 1.1 + v * 3) * v * 0.2;
+
+            pos.setX(i, bx + swayX);
+            pos.setY(i, by + swayY);
+            pos.setZ(i, bz + swayZ);
+          }
         }
       }
       pos.needsUpdate = true;
       fd.geo.computeVertexNormals();
     });
 
-    // Render
-    const mainRect = getRect('main-view');
-    const elevRect = getRect('elev-view');
-    const planRect = getRect('plan-view');
-    camPersp.aspect = mainRect.width / mainRect.height;
-    camPersp.updateProjectionMatrix();
+    mainViewLabels.visible = true;
+    elevDimGroup.visible = false;
+    planDimGroup.visible = false;
+    mainRenderer.render(scene, mainCamera);
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.clear();
+    mainViewLabels.visible = false;
+    elevDimGroup.visible = true;
+    planDimGroup.visible = false;
+    elevRenderer.render(scene, elevCamera);
+    updateElevLabels();
 
-    // Main perspective
-    renderViewport(camPersp, mainRect);
-
-    // Ortho views (no fog)
-    const savedFog = scene.fog;
-    scene.fog = null;
-    renderViewport(camElev, elevRect);
-    renderViewport(camPlan, planRect);
-    scene.fog = savedFog;
-
-    // 2D overlays
-    drawElevAnnotations();
-    drawPlanAnnotations();
+    elevDimGroup.visible = false;
+    planDimGroup.visible = true;
+    planRenderer.render(scene, planCamera);
+    updatePlanLabels();
   }
-
-  updateElevFrustum();
-  updatePlanFrustum();
   animate();
-
-  window.addEventListener('resize', () => { updateElevFrustum(); updatePlanFrustum(); });
 })();
 </script>
 </body>

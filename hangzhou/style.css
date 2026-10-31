@@ -1,38 +1,58 @@
-/* Layout: a printed textbook page on a pale celadon desk. Chapter opener photo, then a main reading
-   column with a margin column for key terms and side notes, like a social studies text. */
+/* Hangzhou in Context, styled to the Buro Happold US Lighting design system:
+   black and white first, one lime accent per page, Segoe UI, square corners, no shadows. */
+@font-face { font-family: "Segoe UI BH"; src: local("Segoe UI"), url("fonts/segoeui.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Segoe UI BH"; src: local("Segoe UI Italic"), url("fonts/segoeuii.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Segoe UI BH"; src: local("Segoe UI Semibold"), url("fonts/seguisb.ttf") format("truetype"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Segoe UI BH"; src: local("Segoe UI Bold"), url("fonts/segoeuib.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "BH Brandon Text"; src: url("fonts/BH_BrandonTxt_light.otf") format("opentype"); font-weight: 100 400; font-display: swap; }
+@font-face { font-family: "BH Brandon Text"; src: url("fonts/BH_BrandonTxt_med.otf") format("opentype"); font-weight: 500 700; font-display: swap; }
+@font-face { font-family: "BH Brandon Text"; src: url("fonts/BH_BrandonTxt_blk.otf") format("opentype"); font-weight: 800 900; font-display: swap; }
 :root {
-  --desk: #e9eee9;
-  --page: #fdfdfb;
-  --ink: #1c2420;
-  --ink-2: #51605a;
-  --rule: #d3dcd6;
-  --celadon: #2f7563;
-  --celadon-ink: #23594b;
-  --celadon-tint: #e2efe9;
-  --seal: #b3352b;
-  --seal-tint: #f8e7e3;
-  --ochre: #9a6a1f;
-  --ochre-tint: #f5ecda;
-  --bar: #b9c6bf;
-  --bar-2: #8fa39a;
-  --shadow: 0 1px 2px rgba(28, 36, 32, .06), 0 8px 28px rgba(28, 36, 32, .07);
-  --serif: "Alegreya", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --sans: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --desk: #ffffff;
+  --page: #ffffff;
+  --ink: #121212;
+  --ink-2: #585253;
+  --rule: #e3e0d6;
+  --rule-strong: #000000;
+  --panel: #f7f6f4;
+  --panel-strong: #f0eee8;
+  --lime: #c4d600;
+  --celadon: #000000;        /* primary fills and strokes: black */
+  --celadon-ink: #000000;    /* links and terms: black */
+  --celadon-tint: #f7f6f4;   /* tinted panels: pale grey */
+  --seal: #000000;
+  --seal-tint: #f7f6f4;
+  --ochre: #585253;
+  --ochre-tint: #f7f6f4;
+  --series-1: #1c3660;       /* BH Dark palette, for charts and maps */
+  --series-2: #006da8;
+  --series-3: #585253;
+  --series-4: #5d822d;
+  --series-5: #d06a13;
+  --series-6: #bc204b;
+  --bar: #e3e0d6;
+  --bar-2: #bfb9b4;
+  --shadow: none;
+  --serif: "Segoe UI BH", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --sans: "Segoe UI BH", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "BH Brandon Text", "Segoe UI BH", "Segoe UI", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --desk: #0f1312; --page: #181e1c; --ink: #e4ebe7; --ink-2: #a6b4ad; --rule: #2e3834;
-    --celadon: #74bfa9; --celadon-ink: #98d4c2; --celadon-tint: #1c302a;
-    --seal: #e8776c; --seal-tint: #3a2321; --ochre: #ddb062; --ochre-tint: #33291a;
-    --bar: #45534d; --bar-2: #627169; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
+    --desk: #000000; --page: #000000; --ink: #ffffff; --ink-2: #bdbdbd; --rule: #474747; --rule-strong: #ffffff;
+    --panel: #141414; --panel-strong: #242424; --celadon: #ffffff; --celadon-ink: #ffffff; --celadon-tint: #141414;
+    --seal: #ffffff; --seal-tint: #141414; --ochre: #bdbdbd; --ochre-tint: #141414;
+    --series-1: #8db9ca; --series-2: #00a9e0; --series-3: #bdbdbd; --series-4: #afc1a2; --series-5: #ee7837; --series-6: #e6484d;
+    --bar: #474747; --bar-2: #6a6a6a;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --desk: #0f1312; --page: #181e1c; --ink: #e4ebe7; --ink-2: #a6b4ad; --rule: #2e3834;
-  --celadon: #74bfa9; --celadon-ink: #98d4c2; --celadon-tint: #1c302a;
-  --seal: #e8776c; --seal-tint: #3a2321; --ochre: #ddb062; --ochre-tint: #33291a;
-  --bar: #45534d; --bar-2: #627169; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.35);
+  --desk: #000000; --page: #000000; --ink: #ffffff; --ink-2: #bdbdbd; --rule: #474747; --rule-strong: #ffffff;
+  --panel: #141414; --panel-strong: #242424; --celadon: #ffffff; --celadon-ink: #ffffff; --celadon-tint: #141414;
+  --seal: #ffffff; --seal-tint: #141414; --ochre: #bdbdbd; --ochre-tint: #141414;
+  --series-1: #8db9ca; --series-2: #00a9e0; --series-3: #bdbdbd; --series-4: #afc1a2; --series-5: #ee7837; --series-6: #e6484d;
+  --bar: #474747; --bar-2: #6a6a6a;
   color-scheme: dark;
 }
 
@@ -328,3 +348,77 @@ dl.glossary dd { margin: 0; }
 dl.glossary .g-unit { display: block; font-family: var(--sans); font-size: .82rem; color: var(--ink-2); margin-top: 2px; }
 @media (max-width: 560px) { dl.glossary { grid-template-columns: minmax(0, 1fr); gap: 2px 0; } dl.glossary dd { margin-bottom: 12px; } }
 svg .s-page { stroke: var(--page); }
+
+/* ---- Buro Happold brand overrides (v2.0) ---- */
+*, *::before, *::after { border-radius: 0 !important; box-shadow: none !important; }
+body { font-size: 1rem; line-height: 1.55; }
+a { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--ink-2); text-decoration-color: var(--lime); }
+a:focus-visible, button:focus-visible, summary:focus-visible, textarea:focus-visible, th:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+h1, .cover-title h1, .opener-text h1 { font-family: var(--display); font-weight: 900; letter-spacing: 0; }
+.sec h2, .review h2, .notes h2, .g-letter, .toc-head, .toc h3 { font-weight: 600; }
+.sec h2 .num { color: var(--ink-2); font-weight: 400; }
+.sec h3 { color: var(--ink); font-weight: 600; }
+.term { color: var(--ink); font-weight: 600; }
+.eyebrow { color: var(--ink-2); letter-spacing: .09em; }
+.seal { background: #000; color: var(--lime); }
+.seal small { color: #fff; }
+.toc .seal, .seal { box-shadow: none !important; }
+.opener-text h1::after { content: ""; display: block; width: 64px; height: 4px; background: var(--lime); margin-top: 14px; }
+.cover-title h1::after { content: ""; display: block; width: 96px; height: 4px; background: var(--lime); margin-top: 16px; }
+.sheet { border-radius: 0; }
+.runhead .pager a, .navtoggle { border: 1px solid var(--rule); }
+.runhead .pager a:hover, .navtoggle:hover, .toc a:hover, .turn a:hover { border-color: var(--ink); opacity: .72; }
+.navtoggle[aria-expanded="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.r-unit b { background: transparent; color: var(--ink-2); border: 1px solid var(--rule); }
+.r-units > li.on > .r-unit { background: var(--panel); }
+.r-units > li.on > .r-unit b { background: #000; color: var(--lime); border-color: #000; }
+.r-secs { border-left-color: var(--rule); }
+.r-secs a .n { color: var(--ink-2); }
+.r-secs a.here { border-left-color: var(--ink); }
+.box { border: 1px solid var(--rule); }
+.box > .label { color: var(--ink-2); letter-spacing: .09em; font-weight: 700; }
+.box.goals { background: var(--panel); border-color: var(--rule); }
+.box.goals > .label { color: var(--ink); }
+.box.terms dt { color: var(--ink); font-weight: 700; }
+.box.dyk { background: var(--page); border-color: var(--rule); border-top: 2px solid var(--ink); }
+.box.dyk > .label { color: var(--ink); }
+.box.hz { border-color: var(--rule); border-top: 2px solid var(--ink); }
+.box.hz > .label { color: var(--ink); }
+.box.worked { background: var(--panel); border-color: var(--rule); }
+.box.worked > .label { color: var(--ink); }
+.box.key b { color: var(--ink); }
+figure.diagram .drawing { border: 1px solid var(--rule); }
+svg .t-accent { fill: var(--series-1); }
+svg .t-seal { fill: var(--series-6); }
+svg .f-accent { fill: var(--series-1); }
+svg .f-seal { fill: var(--series-6); }
+svg .f-tint { fill: var(--panel-strong); }
+svg .f-seal-tint { fill: var(--panel); }
+svg .s-accent { stroke: var(--series-1); }
+svg .s-seal { stroke: var(--series-6); }
+svg .t-on { fill: #fff; }
+.tablewrap { border: 0; border-top: 1px solid var(--rule-strong); }
+th { background: transparent; border-bottom: 1px solid var(--rule-strong); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); font-weight: 700; }
+table.sortable th[aria-sort="ascending"]::after, table.sortable th[aria-sort="descending"]::after { color: var(--ink); }
+tr.hz td { background: var(--panel); }
+.review { border-top: 2px solid var(--rule-strong); }
+.review summary { color: var(--ink); }
+.review details p { background: var(--panel); }
+.rating button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--page); }
+.turn a { border: 1px solid var(--rule); }
+.turn a.next { background: var(--ink); border-color: var(--ink); color: var(--page); }
+.turn a.next small { color: var(--page); }
+.turn a.next:hover { filter: none; opacity: .72; }
+.btn { background: var(--ink); color: var(--page); }
+.btn:hover { filter: none; opacity: .72; }
+.g-jump a { color: var(--ink); border-color: var(--rule); }
+.g-letter { color: var(--ink); }
+dl.glossary dt { color: var(--ink); }
+.opener-photo .credit { background: rgba(0,0,0,.6); }
+.scrolls::after, .tablewrap.scrolls::before { color: var(--ink-2); }
+@media (max-width: 1099.98px) { body.nav-open .rail { box-shadow: none !important; border-bottom: 1px solid var(--rule-strong); } }
+
+/* Dense tables (v2.0) */
+table.compact { font-size: .86rem; }
+table.compact th, table.compact td { padding: 6px 8px; }

@@ -452,3 +452,8 @@ table.compact th, table.compact td { padding: 6px 8px; }
 @media (max-width: 560px) { .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px; } }
 .sec.wide { grid-template-columns: minmax(0, 1fr); }
 .sec.wide > .main { max-width: none; }
+
+/* Fine print at the foot of every page (v2.2) */
+.fineprint { margin: 28px 0 8px; padding: 14px 0 0; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: .78rem; line-height: 1.5; color: var(--ink-2); max-width: 78ch; }
+.fineprint p { margin: 0 0 8px; }
+.fineprint b { color: var(--ink); font-weight: 700; }
